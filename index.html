@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<!--
+  QUICK HTML PRIMER
+  - HTML is made of "elements": <tag>content</tag>. Elements nest like indented blocks.
+  - <style> holds CSS (the look). Values starting with "--" are variables: change the colors once at the top
+    and the whole page updates.
+  - Search this file for "EDIT" to find everything to personalize.
+  - Layout: a dark sidebar on the left with your name and links, and your content scrolling on the right.
+    On phones the sidebar stacks on top automatically.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- EDIT: text shown in the browser tab and in search results -->
+  <title>Your Name – Your Profession</title>
+  <meta name="description" content="EDIT: One sentence describing who you are and what you do.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&family=Spectral:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    /* ---------- Colors and fonts: change these first ---------- */
+    :root {
+      /* sidebar (stays dark in both modes) */
+      --side:        #12263a;
+      --side-ink:    #eaf0f5;
+      --side-muted:  #9fb3c4;
+      --accent:      #e8b04a;   /* the one bright color: bars and highlights */
+
+      /* main content area */
+      --paper:       #f6f7f9;
+      --ink:         #14202b;
+      --muted:       #55656f;
+      --line:        #d5dbe1;
+      --link:        #0e5a7a;
+      --chip:        #e3e9ee;
+      --hover:       #ffffff;
+
+      --serif: "Spectral", Georgia, serif;
+      --sans:  "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --side:   #0a131c;
+        --paper:  #101b26;
+        --ink:    #e6ebef;
+        --muted:  #9aa8b3;
+        --line:   #263543;
+        --link:   #7cc4e6;
+        --chip:   #1c2b39;
+        --hover:  #152433;
+      }
+    }
+
+    /* ---------- Page basics ---------- */
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 1.0625rem;
+      line-height: 1.7;
+    }
+    h1, h2, h3 { font-family: var(--serif); line-height: 1.15; margin: 0; }
+    a { color: var(--link); text-underline-offset: 0.2em; }
+    a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+
+    /* Two columns: sidebar + content */
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(25rem, 34rem) 1fr;
+      min-height: 100vh;
+    }
+
+    /* ---------- Sidebar ---------- */
+    .side {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      background: var(--side);
+      color: var(--side-ink);
+      padding: 3.5rem 3rem;
+      /* Name and navigation on the left, photo on the right, links along the bottom */
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto 1fr auto;
+      grid-template-areas:
+        "name  photo"
+        "nav   photo"
+        ".     ."
+        "links links";
+      column-gap: 1.5rem;
+      row-gap: 1.5rem;
+      align-content: start;
+    }
+    .side-name { grid-area: name; min-width: 0; }
+    .side nav { grid-area: nav; }
+    .side .links { grid-area: links; }
+    .side h1 {
+      font-size: clamp(2.5rem, 4vw, 3.75rem);
+      overflow-wrap: anywhere;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .side .role {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 1.35rem;
+      color: var(--side-muted);
+      margin: 1rem 0 0;
+    }
+
+    /* Photo: a circle to the right of the name and navigation. A silhouette shows until you add your photo. */
+    .photo {
+      grid-area: photo;
+      align-self: center;
+      margin: 0;
+      width: 9rem;
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      border: 3px solid var(--accent);
+      overflow: hidden;
+      background-color: rgba(255, 255, 255, 0.08);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='white' fill-opacity='.25'%3E%3Ccircle cx='50' cy='38' r='16'/%3E%3Cpath d='M18 100c0-22 14-36 32-36s32 14 32 36z'/%3E%3C/g%3E%3C/svg%3E");
+      background-size: cover;
+    }
+    .photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+    .side nav ul { list-style: none; margin: 0; padding: 0; }
+    .side nav a {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      padding: 0.45rem 0;
+      color: var(--side-muted);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    /* the short bar before each link grows on hover or keyboard focus */
+    .side nav a::before {
+      content: "";
+      width: 1.5rem;
+      height: 2px;
+      background: currentColor;
+      transition: width 0.2s, background-color 0.2s;
+    }
+    .side nav a:hover, .side nav a:focus-visible { color: var(--side-ink); }
+    .side nav a:hover::before, .side nav a:focus-visible::before { width: 3rem; background: var(--accent); }
+
+    .side .links { list-style: none; margin: 0; padding: 0; display: flex; gap: 1.5rem; flex-wrap: wrap; }
+    .side .links a { color: var(--side-ink); font-size: 0.95rem; }
+
+    /* ---------- Main content ---------- */
+    main { padding: 5rem 3.5rem 3rem; max-width: 46rem; }
+    section { scroll-margin-top: 3rem; padding-bottom: 4.5rem; }
+    section h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 3px solid var(--accent);
+      display: inline-block;   /* makes the accent line only as wide as the heading */
+    }
+    #about p:first-of-type { font-family: var(--serif); font-size: 1.4rem; line-height: 1.55; }
+
+    /* Projects: each row lifts and gets an accent edge on hover */
+    .project {
+      display: block;
+      padding: 1.5rem 1.5rem 1.5rem 1.25rem;
+      margin: 0 -1.5rem 0 -1.25rem;
+      border-left: 4px solid transparent;
+      border-bottom: 1px solid var(--line);
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+    .project:hover { background: var(--hover); border-left-color: var(--accent); }
+    .project h3 { font-size: 1.4rem; font-weight: 600; }
+    .project h3 a { text-decoration: none; }
+    .project h3 a:hover { text-decoration: underline; }
+    .project p { margin: 0.4rem 0 0; color: var(--muted); }
+    .tags { list-style: none; margin: 0.85rem 0 0; padding: 0; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .tags li { background: var(--chip); color: var(--ink); font-size: 0.85rem; padding: 0.1rem 0.75rem; border-radius: 999px; }
+
+    #contact ul { padding-left: 1.2rem; }
+    footer { padding: 0 3.5rem 3rem; color: var(--muted); font-size: 0.9rem; }
+
+    /* ---------- Phones and narrow windows ---------- */
+    @media (max-width: 56rem) {
+      .layout { grid-template-columns: 1fr; }
+      .side {
+        position: static;
+        height: auto;
+        padding: 2.5rem 1.5rem;
+      }
+      /* same arrangement as on wide screens (name and nav left, photo right), just smaller */
+      .photo { width: 7rem; justify-self: end; }
+      main { padding: 3rem 1.5rem 1rem; }
+      footer { padding: 0 1.5rem 2rem; }
+      .project { margin: 0 -1rem; padding-left: 0.75rem; padding-right: 1rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      * { transition: none !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="layout">
+
+    <!-- Sidebar: stays on screen while the content scrolls -->
+    <header class="side">
+      <div class="side-name">
+        <!-- EDIT: your name and professional title -->
+        <h1>Your Name</h1>
+        <p class="role">Your professional title</p>
+      </div>
+
+      <!-- EDIT: put your photo file (for example photo.jpg) in the same folder as this file.
+           Change the filename below if yours is named differently, and update the alt text.
+           Until the file exists, the gray silhouette is shown instead. A square photo works best. -->
+      <figure class="photo">
+        <img src="photo.jpg" alt="Photo of Your Name" onerror="this.remove()">
+      </figure>
+
+      <nav aria-label="Main">
+        <ul>
+          <li><a href="#about">About</a></li>
+          <li><a href="#projects">Projects</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </nav>
+
+      <!-- EDIT: swap in your real links -->
+      <ul class="links">
+        <li><a href="https://github.com/your-username">GitHub</a></li>
+        <li><a href="https://www.linkedin.com/in/your-username">LinkedIn</a></li>
+        <li><a href="mailto:you@example.com">Email</a></li>
+      </ul>
+    </header>
+
+    <div>
+      <main>
+        <section id="about">
+          <h2>About</h2>
+          <!-- EDIT: the first paragraph is shown larger, so make it your best summary -->
+          <p>
+            A short, plain-language summary of what you do and what you care about.
+          </p>
+          <p>
+            Add more detail here about your background, the kind of work you do,
+            and what you are focused on right now.
+          </p>
+        </section>
+
+        <section id="projects">
+          <h2>Projects</h2>
+
+          <!-- EDIT: copy this whole <article> block once per project -->
+          <article class="project">
+            <h3><a href="https://github.com/your-username/project-one">Project One</a></h3>
+            <p>One or two sentences on what it does and why it matters.</p>
+            <ul class="tags"><li>Python</li><li>pandas</li></ul>
+          </article>
+
+          <article class="project">
+            <h3><a href="https://github.com/your-username/project-two">Project Two</a></h3>
+            <p>One or two sentences on what it does and why it matters.</p>
+            <ul class="tags"><li>Python</li><li>Flask</li></ul>
+          </article>
+        </section>
+
+        <section id="contact">
+          <h2>Contact</h2>
+          <p>The best way to reach me is by email.</p>
+          <ul>
+            <li><a href="mailto:you@example.com">you@example.com</a></li>
+            <li><a href="https://github.com/your-username">GitHub</a></li>
+            <li><a href="https://www.linkedin.com/in/your-username">LinkedIn</a></li>
+          </ul>
+        </section>
+      </main>
+
+      <footer>
+        <!-- EDIT: your name and year -->
+        <p>&copy; 2026 Your Name</p>
+      </footer>
+    </div>
+
+  </div>
+</body>
+</html>
