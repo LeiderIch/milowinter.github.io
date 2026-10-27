@@ -1,0 +1,2088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forge Master Idle RPG</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cinzel: ['Cinzel', 'serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        rarity: {
+                            common: '#9ca3af',
+                            uncommon: '#22c55e',
+                            rare: '#3b82f6',
+                            epic: '#a855f7',
+                            legendary: '#eab308',
+                            mythic: '#ef4444',
+                            celestial: '#06b6d4',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Styles & Scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .rarity-common { border-color: #9ca3af; color: #9ca3af; }
+        .rarity-uncommon { border-color: #22c55e; color: #22c55e; }
+        .rarity-rare { border-color: #3b82f6; color: #3b82f6; }
+        .rarity-epic { border-color: #a855f7; color: #a855f7; }
+        .rarity-legendary { border-color: #eab308; color: #eab308; }
+        .rarity-mythic { border-color: #ef4444; color: #ef4444; }
+        .rarity-celestial { border-color: #06b6d4; color: #06b6d4; text-shadow: 0 0 8px rgba(6, 182, 212, 0.6); }
+
+        .bg-rarity-common { background-color: rgba(156, 163, 175, 0.15); }
+        .bg-rarity-uncommon { background-color: rgba(34, 197, 94, 0.15); }
+        .bg-rarity-rare { background-color: rgba(59, 130, 246, 0.15); }
+        .bg-rarity-epic { background-color: rgba(168, 85, 247, 0.15); }
+        .bg-rarity-legendary { background-color: rgba(234, 179, 8, 0.15); }
+        .bg-rarity-mythic { background-color: rgba(239, 68, 68, 0.15); }
+        .bg-rarity-celestial { background-color: rgba(6, 182, 212, 0.2); }
+        .rarity-divine { border-color: #f472b6; color: #f472b6; text-shadow: 0 0 8px rgba(244,114,182,.7); }
+        .rarity-eternal { border-color: #f8fafc; color: #f8fafc; text-shadow: 0 0 10px rgba(248,250,252,.8); }
+        .rarity-primordial { border-color: #fb923c; color: #fb923c; text-shadow: 0 0 12px rgba(251,146,60,.9); }
+        .bg-rarity-divine { background-color: rgba(244,114,182,.2); }
+        .bg-rarity-eternal { background-color: rgba(248,250,252,.18); }
+        .bg-rarity-primordial { background-color: rgba(251,146,60,.22); }
+
+        @keyframes spark {
+            0% { transform: scale(1) translate(0, 0); opacity: 1; }
+            100% { transform: scale(0) translate(var(--tw-translate-x), var(--tw-translate-y)); opacity: 0; }
+        }
+        .spark-anim { animation: spark 0.4s ease-out forwards; }
+        
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+        }
+        .animate-glow { animation: pulse-glow 2s infinite; }
+    @keyframes toastin { from { transform: translateX(120%); opacity: 0; } to { transform: none; opacity: 1; } }
+        .toast { animation: toastin .3s ease-out; }
+        button, .inventory-slot { will-change: transform; }
+    /* --- UI polish --- */
+        @keyframes tabfade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .tab-content { animation: tabfade .25s ease-out; }
+        .tab-btn { flex-direction: column !important; gap: 2px !important; padding: 8px 6px !important; font-size: 10px !important; min-width: 64px; border-radius: 12px !important; position: relative; }
+        .tab-btn i { font-size: 18px !important; }
+        .tab-btn.active { background: rgba(245,158,11,.12); color: #f59e0b !important; box-shadow: inset 0 -2px 0 #f59e0b; }
+        @media (min-width: 768px) { .tab-btn.active { box-shadow: inset 3px 0 0 #f59e0b; } nav { width: 84px; } }
+        nav { overflow-x: auto; }
+        button:disabled { opacity: .45; cursor: not-allowed; }
+        button:not(:disabled):hover { filter: brightness(1.12); }
+        main::-webkit-scrollbar { width: 8px; } main::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px; }
+        main section > div, main section > .bg-slate-900 { box-shadow: 0 4px 24px rgba(0,0,0,.25); }
+        #save-status { display: none; } @media (min-width: 640px) { #save-status { display: inline; } }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased h-screen overflow-hidden flex flex-col select-none">
+
+    <!-- TOP NAV / CURRENCY BAR -->
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-2 flex flex-wrap justify-between items-center shadow-md z-20 gap-2 shrink-0">
+        <div class="flex items-center space-x-3">
+            <h1 class="font-cinzel text-xl font-black text-amber-500 tracking-wider flex items-center gap-2">
+                <i class="fa-solid font-black fa-hammer text-amber-400"></i> FORGE MASTER
+            </h1>
+            <span id="save-status" class="text-xs text-slate-500 font-mono"><i class="fa-solid fa-floppy-disk"></i> Saved</span>
+        </div>
+
+        <!-- Currencies Display -->
+        <div class="flex flex-wrap items-center gap-3 sm:gap-6 text-sm font-semibold">
+            <div class="flex items-center gap-1.5 bg-slate-950/60 px-2.5 py-1 rounded-lg border border-amber-900/50" title="Gold">
+                <i class="fa-solid fa-coins text-amber-400"></i>
+                <span id="res-gold" class="text-amber-200">0</span>
+            </div>
+            <div class="flex items-center gap-1.5 bg-slate-950/60 px-2.5 py-1 rounded-lg border border-purple-900/50" title="Essence (From Dismantling Gear)">
+                <i class="fa-solid fa-flask text-purple-400"></i>
+                <span id="res-essence" class="text-purple-200">0</span>
+            </div>
+            <div class="flex items-center gap-1.5 bg-slate-950/60 px-2.5 py-1 rounded-lg border border-cyan-900/50" title="Diamonds">
+                <i class="fa-solid fa-gem text-cyan-400"></i>
+                <span id="res-diamonds" class="text-cyan-200">0</span>
+            </div>
+            <div class="flex items-center gap-1.5 bg-slate-950/60 px-2.5 py-1 rounded-lg border border-rose-900/50" title="Soul Shards (Prestige)">
+                <i class="fa-solid fa-fire text-rose-500"></i>
+                <span id="res-shards" class="text-rose-200">0</span>
+            </div>
+            <button id="btn-speed" onclick="game.cycleSpeed()" class="px-2 py-1 text-xs font-bold text-amber-300 bg-slate-950 border border-slate-700 rounded-lg hover:border-amber-500 transition" title="Combat speed">x1</button>
+            <button onclick="game.resetSave()" class="p-1.5 text-slate-600 hover:text-rose-400 transition" title="Delete save"><i class="fa-solid fa-trash"></i></button>
+            <button id="btn-audio-toggle" onclick="game.toggleAudio()" class="p-1.5 text-slate-400 hover:text-amber-400 transition" title="Toggle Audio">
+                <i id="audio-icon" class="fa-solid fa-volume-high"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN APP LAYOUT (SPLIT INTO COMBAT TOP/SIDE & MAIN TABS) -->
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+
+        <!-- NAVIGATION SIDEBAR / TAB SELECTOR -->
+        <nav class="bg-slate-900 border-r border-slate-800 flex md:flex-col justify-around md:justify-start gap-1 p-2 shrink-0 z-10">
+            <button onclick="game.switchTab('forge')" id="tab-btn-forge" class="tab-btn active flex flex-col md:flex-row items-center gap-2 p-3 rounded-lg hover:bg-slate-800 text-amber-500 font-semibold text-xs md:text-sm transition">
+                <i class="fa-solid fa-hammer text-lg"></i> <span>Forge</span>
+            </button>
+            <button onclick="game.switchTab('hero')" id="tab-btn-hero" class="tab-btn flex flex-col md:flex-row items-center gap-2 p-3 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs md:text-sm transition">
+                <i class="fa-solid fa-user-shield text-lg"></i> <span>Hero & Gear</span>
+            </button>
+            <button onclick="game.switchTab('mine')" id="tab-btn-mine" class="tab-btn flex flex-col md:flex-row items-center gap-2 p-3 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs md:text-sm transition">
+                <i class="fa-solid fa-person-digging text-lg"></i> <span>Mine & Ores</span>
+            </button>
+            <button onclick="game.switchTab('skills')" id="tab-btn-skills" class="tab-btn flex flex-col md:flex-row items-center gap-2 p-3 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs md:text-sm transition">
+                <i class="fa-solid fa-sitemap text-lg"></i> <span>Tech Tree</span>
+            </button>
+            <button onclick="game.switchTab('pets')" id="tab-btn-pets" class="tab-btn flex flex-col md:flex-row items-center gap-2 p-3 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs md:text-sm transition">
+                <i class="fa-solid fa-paw text-lg"></i> <span>Pets</span>
+            </button>
+            <button onclick="game.switchTab('stats')" id="tab-btn-stats" class="tab-btn flex flex-col md:flex-row items-center gap-2 p-3 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs md:text-sm transition">
+                <i class="fa-solid fa-chart-simple text-lg"></i> <span>Stats</span>
+            </button>
+            <button onclick="game.switchTab('achv')" id="tab-btn-achv" class="tab-btn flex flex-col md:flex-row items-center gap-2 p-3 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs md:text-sm transition">
+                <i class="fa-solid fa-trophy text-lg"></i> <span>Trophies</span>
+            </button>
+            <button onclick="game.switchTab('gamble')" id="tab-btn-gamble" class="tab-btn hidden flex flex-col md:flex-row items-center gap-2 p-3 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs md:text-sm transition">
+                <i class="fa-solid fa-dice text-lg"></i> <span>Gambling</span>
+            </button>
+            <button onclick="game.switchTab('prestige')" id="tab-btn-prestige" class="tab-btn flex flex-col md:flex-row items-center gap-2 p-3 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs md:text-sm transition">
+                <i class="fa-solid fa-rotate text-lg"></i> <span>Reforge Soul</span>
+            </button>
+        </nav>
+
+        <!-- CENTER CONTENT VIEWS -->
+        <main class="flex-1 overflow-y-auto p-4 bg-slate-950 relative">
+
+            <!-- TAB 1: THE FORGE -->
+            <section id="tab-forge" class="tab-content max-w-4xl mx-auto space-y-6">
+                <!-- Anvil Action Zone -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center relative overflow-hidden shadow-2xl">
+                    <div class="absolute -top-12 -right-12 w-40 h-40 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+                    <h2 class="font-cinzel text-xl text-amber-400 font-bold mb-1">THE ROYAL ANVIL</h2>
+                    <p class="text-xs text-slate-400 mb-4">Tap the anvil to craft gear. Each craft burns 2 Iron Ore, plus 1 of your best rarer ore for a quality boost.</p>
+
+                    <!-- Anvil Interactive Element -->
+                    <div class="relative inline-block my-4">
+                        <button id="btn-anvil" onclick="game.manualForge(event)" class="relative group cursor-pointer active:scale-95 transition transform duration-75 focus:outline-none">
+                            <div class="w-36 h-36 sm:w-44 sm:h-44 rounded-full bg-slate-950 border-4 border-amber-600/40 flex items-center justify-center shadow-lg group-hover:border-amber-500 transition">
+                                <i class="fa-solid fa-hammer text-6xl sm:text-7xl text-slate-300 group-hover:text-amber-400 transition"></i>
+                            </div>
+                            <div class="absolute inset-0 rounded-full border border-amber-500/30 animate-ping opacity-25 pointer-events-none"></div>
+                        </button>
+                        <div id="spark-container" class="absolute inset-0 pointer-events-none overflow-visible"></div>
+                    </div>
+
+                    <!-- Auto Craft Controls -->
+                    <div class="flex flex-wrap justify-center items-center gap-4 mt-2">
+                        <label class="flex items-center gap-2 cursor-pointer bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 hover:border-slate-700">
+                            <input type="checkbox" id="toggle-autocraft" onchange="game.toggleAutoCraft(this.checked)" class="w-4 h-4 text-amber-500 rounded focus:ring-0 accent-amber-500">
+                            <span class="text-sm font-semibold text-slate-300">Auto-Crafting</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 hover:border-slate-700">
+                            <input type="checkbox" id="toggle-autoequip" onchange="game.state.forge.autoEquip=this.checked" class="w-4 h-4 rounded focus:ring-0 accent-amber-500">
+                            <span class="text-sm font-semibold text-slate-300">Auto-Equip Upgrades</span>
+                        </label>
+                        <div class="text-xs text-slate-400 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800">
+                            Craft Speed: <span id="lbl-craft-speed" class="text-amber-400 font-bold">1.0s</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Forge Stats Upgrades Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center">
+                        <div>
+                            <div class="font-bold text-sm text-slate-200">Hammer Speed</div>
+                            <div class="text-xs text-slate-400">Reduces crafting delay time</div>
+                            <div class="text-xs text-amber-400 mt-1">Lvl <span id="lvl-forge-speed">1</span></div>
+                        </div>
+                        <button onclick="game.buyForgeUpgrade('speed')" id="btn-up-forge-speed" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-lg transition disabled:opacity-40">
+                            <span id="cost-forge-speed">10 Gold</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center">
+                        <div>
+                            <div class="font-bold text-sm text-slate-200">Multi-Craft Chance</div>
+                            <div class="text-xs text-slate-400">Chance to craft extra items</div>
+                            <div class="text-xs text-amber-400 mt-1">Lvl <span id="lvl-forge-multi">0</span></div>
+                        </div>
+                        <button onclick="game.buyForgeUpgrade('multi')" id="btn-up-forge-multi" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-lg transition disabled:opacity-40">
+                            <span id="cost-forge-multi">50 Gold</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center">
+                        <div>
+                            <div class="font-bold text-sm text-slate-200">Masterwork Quality</div>
+                            <div class="text-xs text-slate-400">Boosts higher rarity item odds</div>
+                            <div class="text-xs text-amber-400 mt-1">Lvl <span id="lvl-forge-rarity">1</span></div>
+                        </div>
+                        <button onclick="game.buyForgeUpgrade('rarity')" id="btn-up-forge-rarity" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-lg transition disabled:opacity-40">
+                            <span id="cost-forge-rarity">100 Gold</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center">
+                        <div>
+                            <div class="font-bold text-sm text-slate-200">Forging Mastery</div>
+                            <div class="text-xs text-slate-400">Increases crafted gear stat power</div>
+                            <div class="text-xs text-amber-400 mt-1">Lvl <span id="lvl-forge-power">1</span></div>
+                        </div>
+                        <button onclick="game.buyForgeUpgrade('power')" id="btn-up-forge-power" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-lg transition disabled:opacity-40">
+                            <span id="cost-forge-power">200 Gold</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Auto-Salvation Settings -->
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                    <h3 class="font-cinzel font-bold text-sm text-amber-400 mb-2">AUTO-SALVAGE SETTINGS</h3>
+                    <p class="text-xs text-slate-400 mb-3">Crafted gear below or equal to selected tier will automatically be salvaged into Essence.</p>
+                    <label class="flex items-center gap-2 cursor-pointer mb-3 text-xs text-slate-300 font-semibold">
+                        <input type="checkbox" id="toggle-salvage-worse" onchange="game.state.forge.autoSalvageWorse=this.checked" class="w-4 h-4 rounded accent-amber-500"> Also salvage anything that isn't better than what I have equipped
+                    </label>
+                    <div class="flex flex-wrap gap-2" id="auto-salvage-buttons">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: HERO & INVENTORY -->
+            <section id="tab-hero" class="tab-content hidden max-w-5xl mx-auto space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                    <!-- HERO PAPERDOLL & STATS -->
+                    <div class="lg:col-span-5 bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between space-y-4">
+                        <div>
+                            <div class="flex justify-between items-center mb-4">
+                                <div>
+                                    <h2 class="font-cinzel text-lg font-bold text-amber-400">THE HERO</h2>
+                                    <span class="text-xs text-slate-400">Level <span id="hero-lvl" class="text-slate-100 font-bold">1</span> Hero</span>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-xs text-slate-400">Power Rating</div>
+                                    <div id="hero-power" class="font-cinzel font-bold text-lg text-amber-400">0</div>
+                                </div>
+                            </div>
+
+                            <!-- XP Bar -->
+                            <div class="w-full bg-slate-950 rounded-full h-2 mb-4 overflow-hidden border border-slate-800">
+                                <div id="hero-xp-bar" class="bg-gradient-to-r from-amber-600 to-amber-400 h-full w-0 transition-all duration-200"></div>
+                            </div>
+
+                            <!-- Paperdoll Equipment Grid -->
+                            <div class="grid grid-cols-3 gap-3 my-4 bg-slate-950 p-4 rounded-xl border border-slate-800/80">
+                                <!-- Helmet -->
+                                <div id="slot-head" onclick="game.unequipSlot('head')" class="equip-slot border-2 border-dashed border-slate-800 rounded-xl h-20 flex flex-col items-center justify-center cursor-pointer hover:border-amber-500/50 relative bg-slate-900/50">
+                                    <i class="fa-solid fa-helmet-safety text-slate-700 text-xl"></i>
+                                    <span class="text-[10px] text-slate-500 mt-1">Head</span>
+                                </div>
+                                <!-- Armor -->
+                                <div id="slot-chest" onclick="game.unequipSlot('chest')" class="equip-slot border-2 border-dashed border-slate-800 rounded-xl h-20 flex flex-col items-center justify-center cursor-pointer hover:border-amber-500/50 relative bg-slate-900/50">
+                                    <i class="fa-solid fa-shirt text-slate-700 text-xl"></i>
+                                    <span class="text-[10px] text-slate-500 mt-1">Chest</span>
+                                </div>
+                                <!-- Weapon -->
+                                <div id="slot-weapon" onclick="game.unequipSlot('weapon')" class="equip-slot border-2 border-dashed border-slate-800 rounded-xl h-20 flex flex-col items-center justify-center cursor-pointer hover:border-amber-500/50 relative bg-slate-900/50">
+                                    <i class="fa-solid fa-hand-fist text-slate-700 text-xl"></i>
+                                    <span class="text-[10px] text-slate-500 mt-1">Weapon</span>
+                                </div>
+                                <!-- Offhand / Shield -->
+                                <div id="slot-shield" onclick="game.unequipSlot('shield')" class="equip-slot border-2 border-dashed border-slate-800 rounded-xl h-20 flex flex-col items-center justify-center cursor-pointer hover:border-amber-500/50 relative bg-slate-900/50">
+                                    <i class="fa-solid fa-shield text-slate-700 text-xl"></i>
+                                    <span class="text-[10px] text-slate-500 mt-1">Shield</span>
+                                </div>
+                                <!-- Boots -->
+                                <div id="slot-feet" onclick="game.unequipSlot('feet')" class="equip-slot border-2 border-dashed border-slate-800 rounded-xl h-20 flex flex-col items-center justify-center cursor-pointer hover:border-amber-500/50 relative bg-slate-900/50">
+                                    <i class="fa-solid fa-shoe-prints text-slate-700 text-xl"></i>
+                                    <span class="text-[10px] text-slate-500 mt-1">Feet</span>
+                                </div>
+                                <!-- Accessory -->
+                                <div id="slot-ring" onclick="game.unequipSlot('ring')" class="equip-slot border-2 border-dashed border-slate-800 rounded-xl h-20 flex flex-col items-center justify-center cursor-pointer hover:border-amber-500/50 relative bg-slate-900/50">
+                                    <i class="fa-solid fa-ring text-slate-700 text-xl"></i>
+                                    <span class="text-[10px] text-slate-500 mt-1">Ring</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hero Stats Summary & Attribute Point Allocator -->
+                        <div class="space-y-3">
+                            <div class="flex justify-between text-xs text-slate-400">
+                                <span>Unassigned Stat Points:</span>
+                                <span id="hero-stat-pts" class="text-amber-400 font-bold">0</span>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2 text-xs">
+                                <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
+                                    <div><span class="text-slate-400">STR:</span> <span id="stat-str" class="font-bold text-slate-200">10</span></div>
+                                    <button onclick="game.allocStat('str')" class="bg-slate-800 hover:bg-amber-600 text-slate-200 px-2 py-0.5 rounded font-bold">+</button>
+                                </div>
+                                <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
+                                    <div><span class="text-slate-400">AGI:</span> <span id="stat-agi" class="font-bold text-slate-200">10</span></div>
+                                    <button onclick="game.allocStat('agi')" class="bg-slate-800 hover:bg-amber-600 text-slate-200 px-2 py-0.5 rounded font-bold">+</button>
+                                </div>
+                                <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
+                                    <div><span class="text-slate-400">VIT:</span> <span id="stat-vit" class="font-bold text-slate-200">10</span></div>
+                                    <button onclick="game.allocStat('vit')" class="bg-slate-800 hover:bg-amber-600 text-slate-200 px-2 py-0.5 rounded font-bold">+</button>
+                                </div>
+                                <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
+                                    <div><span class="text-slate-400">INT:</span> <span id="stat-int" class="font-bold text-slate-200">10</span></div>
+                                    <button onclick="game.allocStat('int')" class="bg-slate-800 hover:bg-amber-600 text-slate-200 px-2 py-0.5 rounded font-bold">+</button>
+                                </div>
+                            </div>
+
+                            <!-- Derived Stats -->
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1 text-xs">
+                                <div class="flex justify-between"><span>Attack:</span><span id="stat-atk" class="text-rose-400 font-semibold">0</span></div>
+                                <div class="flex justify-between"><span>Defense:</span><span id="stat-def" class="text-blue-400 font-semibold">0</span></div>
+                                <div class="flex justify-between"><span>Max HP:</span><span id="stat-hp" class="text-emerald-400 font-semibold">0</span></div>
+                                <div class="flex justify-between"><span>Crit Chance:</span><span id="stat-crit" class="text-amber-400 font-semibold">5%</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- INVENTORY GRID -->
+                    <div class="lg:col-span-7 bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
+                        <div>
+                            <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+                                <h2 class="font-cinzel text-lg font-bold text-amber-400">INVENTORY (<span id="inv-count">0</span>/<span id="inv-max">30</span>)</h2>
+                                <div class="flex gap-2">
+                                    <button onclick="game.buyInvSlots()" class="bg-cyan-900/50 hover:bg-cyan-800 border border-cyan-500/40 text-cyan-200 text-xs font-bold px-3 py-1.5 rounded-lg transition" title="Costs 10 diamonds"><i class="fa-solid fa-gem"></i> +5 Slots</button>
+                                    <button onclick="game.autoEquipBest()" class="bg-amber-600 hover:bg-amber-500 text-slate-950 text-xs font-bold px-3 py-1.5 rounded-lg transition">
+                                        Auto-Equip Best
+                                    </button>
+                                    <button onclick="game.salvageAllNonEquipped()" class="bg-purple-900/60 hover:bg-purple-800 border border-purple-500/40 text-purple-200 text-xs font-bold px-3 py-1.5 rounded-lg transition">
+                                        Salvage All
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Inventory Grid Container -->
+                            <div id="inventory-grid" class="grid grid-cols-5 sm:grid-cols-6 gap-2 max-h-[420px] overflow-y-auto p-1">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Selected Item Details Box -->
+                        <div id="item-detail-card" class="mt-4 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs hidden">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div id="item-detail-name" class="font-bold text-sm">Item Name</div>
+                                    <div id="item-detail-type" class="text-slate-400 text-[10px]">Type</div>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button id="btn-item-equip" class="bg-amber-600 hover:bg-amber-500 text-slate-950 px-3 py-1 rounded font-bold text-xs">Equip</button>
+                                    <button id="btn-item-upgrade" class="bg-purple-600 hover:bg-purple-500 text-slate-100 px-3 py-1 rounded font-bold text-xs">Upgrade</button>
+                                    <button id="btn-item-salvage" class="bg-rose-900 hover:bg-rose-700 text-rose-100 px-3 py-1 rounded font-bold text-xs">Salvage</button>
+                                </div>
+                            </div>
+                            <div id="item-detail-stats" class="mt-2 text-slate-300 space-y-0.5"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: MINE & RESOURCE GATHERING -->
+            <section id="tab-mine" class="tab-content hidden max-w-4xl mx-auto space-y-6">
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+                    <h2 class="font-cinzel text-lg font-bold text-amber-400 mb-1">AUTOMATED MINES</h2>
+                    <p class="text-xs text-slate-400 mb-6">Extract raw ores automatically to fuel your forge crafts.</p>
+
+                    <div id="mines-container" class="space-y-4">
+                        <!-- Populated by JS for Iron, Mithril, Adamantite, etc. -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: TECH TREE / SKILLS -->
+            <section id="tab-skills" class="tab-content hidden max-w-4xl mx-auto space-y-6">
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+                    <h2 class="font-cinzel text-lg font-bold text-amber-400 mb-1">FORGE TECH TREE</h2>
+                    <p class="text-xs text-slate-400 mb-6">Spend Gold & Essence to unlock powerful global passive bonuses.</p>
+
+                    <div id="skills-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Skills populated by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-gamble" class="tab-content hidden max-w-4xl mx-auto"><div id="gamble-content" class="space-y-4"></div></section>
+            <section id="tab-pets" class="tab-content hidden max-w-4xl mx-auto">
+                <div id="pets-content" class="space-y-4"></div>
+            </section>
+            <section id="tab-stats" class="tab-content hidden max-w-5xl mx-auto">
+                <h2 class="font-cinzel text-lg font-bold text-amber-400 mb-3">HERO & FORGE STATISTICS</h2>
+                <div id="stats-content" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs"></div>
+            </section>
+            <section id="tab-achv" class="tab-content hidden max-w-4xl mx-auto">
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+                    <h2 class="font-cinzel text-lg font-bold text-amber-400 mb-1">TROPHIES <span id="achv-count" class="text-xs text-slate-400 font-sans"></span></h2>
+                    <p class="text-xs text-slate-400 mb-4">Earn diamonds by hitting milestones.</p>
+                    <div id="achv-grid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+                </div>
+            </section>
+            <!-- TAB 5: REFORGE SOUL (PRESTIGE) -->
+            <section id="tab-prestige" class="tab-content hidden max-w-4xl mx-auto space-y-6">
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl text-center space-y-4">
+                    <div class="w-16 h-16 bg-rose-950 border-2 border-rose-600 rounded-full flex items-center justify-center mx-auto text-rose-400 text-2xl animate-pulse">
+                        <i class="fa-solid fa-fire"></i>
+                    </div>
+                    <h2 class="font-cinzel text-2xl font-black text-rose-500">REFORGE SOUL</h2>
+                    <p class="text-xs text-slate-400 max-w-lg mx-auto">
+                        Reset your Stage progress, Gold, and raw Ores to gain <strong class="text-rose-400">Soul Shards</strong>. 
+                        Soul Shards persist forever and unlock divine relics and global multipliers.
+                    </p>
+
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 inline-block text-left min-w-[280px]">
+                        <div class="text-xs text-slate-400">Current Pending Shards:</div>
+                        <div id="pending-shards" class="text-2xl font-black text-rose-400 font-cinzel">0 Soul Shards</div>
+                        <div class="text-[10px] text-slate-500 mt-1">Based on highest stage cleared & total gold.</div>
+                    </div>
+
+                    <div>
+                        <button onclick="game.reforgeSoul()" class="bg-gradient-to-r from-rose-700 to-red-600 hover:from-rose-600 hover:to-red-500 text-slate-100 font-cinzel font-bold px-6 py-3 rounded-xl shadow-lg transition transform active:scale-95">
+                            EXECUTE REFORGE
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SOUL SHOP -->
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+                    <h3 class="font-cinzel text-lg font-bold text-rose-400 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-gem"></i> ANCIENT SOUL RELICS
+                    </h3>
+                    <div id="soul-shop-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- RIGHT PANEL: ALWAYS-VISIBLE DUNGEON COMBAT ARENA -->
+        <aside class="w-full md:w-80 lg:w-96 bg-slate-900 border-t md:border-t-0 md:border-l border-slate-800 flex flex-col shrink-0">
+            <!-- Combat Header -->
+            <div class="p-3 bg-slate-950 border-b border-slate-800 flex justify-between items-center">
+                <div>
+                    <div id="dungeon-zone-title" class="font-cinzel font-bold text-xs text-amber-400">ZONE 1: SLIME CAVE</div>
+                    <div id="dungeon-stage-title" class="text-xs text-slate-300 font-semibold">Stage 1-1</div>
+                </div>
+                <div class="flex gap-2">
+                    <button id="btn-strike" onclick="game.useStrike()" class="bg-amber-600 hover:bg-amber-500 text-slate-950 text-xs font-bold px-2.5 py-1 rounded transition"><i class="fa-solid fa-bolt"></i> Power Strike <span class="opacity-60">[P]</span></button>
+                    <button id="btn-boss" onclick="game.challengeBoss()" class="bg-rose-700 hover:bg-rose-600 text-slate-100 text-xs font-bold px-2.5 py-1 rounded transition hidden">
+                        Boss Fight!
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas Combat Viewport -->
+            <div class="relative bg-slate-950 flex-1 min-h-[220px] max-h-[320px] md:max-h-none flex items-center justify-center overflow-hidden">
+                <canvas id="combat-canvas" class="w-full h-full block"></canvas>
+            </div>
+
+            <!-- Boss Timer Bar (If active) -->
+            <div id="boss-timer-container" class="bg-slate-950 px-3 py-1 border-t border-slate-800 hidden">
+                <div class="flex justify-between text-[10px] text-rose-400 font-bold mb-1">
+                    <span>BOSS TIMER</span>
+                    <span id="boss-timer-text">30.0s</span>
+                </div>
+                <div class="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
+                    <div id="boss-timer-bar" class="bg-rose-600 h-full w-full transition-all duration-100"></div>
+                </div>
+            </div>
+
+            <!-- Combat Log -->
+            <div class="p-3 bg-slate-900 border-t border-slate-800 h-32 flex flex-col">
+                <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Combat Output</div>
+                <div id="combat-log" class="flex-1 overflow-y-auto text-[11px] font-mono space-y-1 text-slate-400">
+                    <div>[System] Battle initiated...</div>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <div id="modal" class="hidden fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 id="modal-title" class="font-cinzel text-lg font-bold text-amber-400 mb-2"></h3>
+            <div id="modal-body" class="text-sm text-slate-300 mb-5"></div>
+            <div class="flex gap-2 justify-end">
+                <button id="modal-no" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold px-4 py-2 rounded-lg">Cancel</button>
+                <button id="modal-yes" class="bg-amber-600 hover:bg-amber-500 text-slate-950 text-sm font-bold px-4 py-2 rounded-lg">OK</button>
+            </div>
+        </div>
+    </div>
+    <div id="toasts" class="fixed top-14 right-3 z-50 space-y-2 pointer-events-none"></div>
+    <!-- MAIN GAME LOGIC -->
+    <script>
+        /**
+         * FORGE MASTER IDLE RPG - CORE ENGINE
+         */
+
+        // Audio Engine using Web Audio API
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) this.ctx = new AudioContext();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playAnvil() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.12);
+
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.12);
+            }
+
+            playHit() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.08);
+
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            }
+
+            playLevelUp() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(554.37, now + 0.1);
+                osc.frequency.setValueAtTime(659.25, now + 0.2);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+        }
+
+        const audio = new SoundEngine();
+
+        // Game Configuration & Constants
+        const RARITIES = [
+            { id: 'common', name: 'Common', color: '#9ca3af', class: 'rarity-common', bgClass: 'bg-rarity-common', multiplier: 1, chance: 60 },
+            { id: 'uncommon', name: 'Uncommon', color: '#22c55e', class: 'rarity-uncommon', bgClass: 'bg-rarity-uncommon', multiplier: 1.5, chance: 25 },
+            { id: 'rare', name: 'Rare', color: '#3b82f6', class: 'rarity-rare', bgClass: 'bg-rarity-rare', multiplier: 2.3, chance: 10 },
+            { id: 'epic', name: 'Epic', color: '#a855f7', class: 'rarity-epic', bgClass: 'bg-rarity-epic', multiplier: 3.8, chance: 4 },
+            { id: 'legendary', name: 'Legendary', color: '#eab308', class: 'rarity-legendary', bgClass: 'bg-rarity-legendary', multiplier: 6.5, chance: 0.9 },
+            { id: 'mythic', name: 'Mythic', color: '#ef4444', class: 'rarity-mythic', bgClass: 'bg-rarity-mythic', multiplier: 12, chance: 0.09 },
+            { id: 'celestial', name: 'Celestial', color: '#06b6d4', class: 'rarity-celestial', bgClass: 'bg-rarity-celestial', multiplier: 25, chance: 0.01 },
+            { id: 'divine', name: 'Divine', color: '#f472b6', class: 'rarity-divine', bgClass: 'bg-rarity-divine', multiplier: 45, chance: 0.006 },
+            { id: 'eternal', name: 'Eternal', color: '#f8fafc', class: 'rarity-eternal', bgClass: 'bg-rarity-eternal', multiplier: 80, chance: 0.003 },
+            { id: 'primordial', name: 'Primordial', color: '#fb923c', class: 'rarity-primordial', bgClass: 'bg-rarity-primordial', multiplier: 150, chance: 0.0015 }
+        ];
+
+        const ITEM_TYPES = [
+            { id: 'weapon', name: 'Weapon', icon: 'fa-hand-fist', stat: 'atk' },
+            { id: 'shield', name: 'Off-Hand', icon: 'fa-shield', stat: 'def' },
+            { id: 'head', name: 'Helmet', icon: 'fa-helmet-safety', stat: 'hp' },
+            { id: 'chest', name: 'Armor', icon: 'fa-shirt', stat: 'def' },
+            { id: 'feet', name: 'Boots', icon: 'fa-shoe-prints', stat: 'hp' },
+            { id: 'ring', name: 'Accessory', icon: 'fa-ring', stat: 'atk' }
+        ];
+
+        const ORES = [
+            { id: 'iron', name: 'Iron Ore', color: '#94a3b8', baseCost: 10, yield: 1 },
+            { id: 'mithril', name: 'Mithril Ore', color: '#38bdf8', baseCost: 100, yield: 1 },
+            { id: 'adamantite', name: 'Adamantite Ore', color: '#4ade80', baseCost: 1200, yield: 1 },
+            { id: 'runite', name: 'Runite Ore', color: '#c084fc', baseCost: 15000, yield: 1 },
+            { id: 'celestial', name: 'Celestial Ore', color: '#22d3ee', baseCost: 200000, yield: 1 }
+        ];
+
+        const ZONE_ENEMIES = [
+            [['Green Slime', '#4ade80'], ['Cave Bat', '#a78bfa'], ['Mud Crawler', '#a16207']],
+            [['Goblin Raider', '#84cc16'], ['Goblin Shaman', '#22d3ee'], ['Warg', '#9ca3af']],
+            [['Skeleton', '#e5e7eb'], ['Wraith', '#818cf8'], ['Ghoul', '#65a30d']],
+            [['Magma Imp', '#fb923c'], ['Fire Elemental', '#ef4444'], ['Lava Golem', '#b45309']],
+            [['Ice Wolf', '#7dd3fc'], ['Frost Giant', '#38bdf8'], ['Snow Wraith', '#e0f2fe']],
+            [['Shade', '#6366f1'], ['Dark Knight', '#475569'], ['Nightmare', '#c026d3']],
+            [['Drake', '#f97316'], ['Wyvern', '#14b8a6'], ['Elder Dragon', '#dc2626']],
+            [['Seraph', '#fde047'], ['Void Walker', '#a855f7'], ['Star Eater', '#22d3ee']]
+        ];
+        const ACHV = [
+            { id: 'k100', name: 'Monster Hunter', desc: 'Slay 100 monsters', r: 5, ok: g => g.stats.kills >= 100 },
+            { id: 'k1000', name: 'Slayer', desc: 'Slay 1,000 monsters', r: 20, ok: g => g.stats.kills >= 1000 },
+            { id: 'k10000', name: 'Annihilator', desc: 'Slay 10,000 monsters', r: 60, ok: g => g.stats.kills >= 10000 },
+            { id: 'c100', name: 'Apprentice Smith', desc: 'Craft 100 items', r: 5, ok: g => g.stats.crafted >= 100 },
+            { id: 'c1000', name: 'Master Smith', desc: 'Craft 1,000 items', r: 25, ok: g => g.stats.crafted >= 1000 },
+            { id: 's10', name: 'Dungeon Delver', desc: 'Reach stage 10', r: 5, ok: g => g.dungeon.highestStage >= 10 },
+            { id: 's30', name: 'Deep Diver', desc: 'Reach stage 30', r: 15, ok: g => g.dungeon.highestStage >= 30 },
+            { id: 's60', name: 'Abyss Walker', desc: 'Reach stage 60', r: 40, ok: g => g.dungeon.highestStage >= 60 },
+            { id: 'l10', name: 'Rising Hero', desc: 'Reach hero level 10', r: 5, ok: g => g.hero.level >= 10 },
+            { id: 'l30', name: 'Veteran', desc: 'Reach hero level 30', r: 20, ok: g => g.hero.level >= 30 },
+            { id: 'sh1', name: 'Soul Forged', desc: 'Own a Soul Shard', r: 10, ok: g => g.shards >= 1 },
+            { id: 'pet1', name: 'Best Friend', desc: 'Hatch your first pet', r: 5, ok: g => Object.keys(g.pets.owned).length >= 1 },
+            { id: 'pet6', name: 'Beast Master', desc: 'Collect 6 different pets', r: 25, ok: g => Object.keys(g.pets.owned).length >= 6 },
+            { id: 'au', name: 'Fully Automated', desc: 'Hire 5+ Iron miners', r: 5, ok: g => g.ores.iron.minerLvl >= 5 }
+        ];
+
+        const SKILLS = [
+            { id: 'atkBoost', cat: 'COMBAT', name: 'Tempered Steel', desc: '+5% Attack per level', cur: 'gold', base: 250, g: 1.7, now: l => `+${l * 5}% ATK` },
+            { id: 'defBoost', cat: 'COMBAT', name: 'Iron Skin', desc: '+5% Defense & Max HP per level', cur: 'gold', base: 250, g: 1.7, now: l => `+${l * 5}% DEF/HP` },
+            { id: 'critBoost', cat: 'COMBAT', name: 'Keen Edge', desc: '+1% Crit Chance per level (max 75%)', cur: 'gold', base: 400, g: 1.8, now: l => `+${l}% crit` },
+            { id: 'critDmg', cat: 'COMBAT', name: 'Executioner', desc: '+10% Crit Damage per level', cur: 'essence', base: 50, g: 1.7, now: l => `x${(1.8 + l * 0.1).toFixed(1)} crit dmg` },
+            { id: 'regenBoost', cat: 'COMBAT', name: 'Second Wind', desc: '+0.5% HP regen per second per level', cur: 'gold', base: 300, g: 1.7, now: l => `${(2 + l * 0.5).toFixed(1)}%/s regen` },
+            { id: 'strikeBoost', cat: 'COMBAT', name: 'Quick Strike', desc: '-0.5s Power Strike cooldown per level (min 4s)', cur: 'gold', base: 500, g: 1.9, now: l => `${Math.max(4, 12 - l * 0.5).toFixed(1)}s cooldown` },
+            { id: 'craftSpeedBoost', cat: 'FORGE', name: 'Overclocked Forge', desc: '+10% faster crafting per level', cur: 'gold', base: 200, g: 1.7, now: l => `+${l * 10}% speed` },
+            { id: 'luckBoost', cat: 'FORGE', name: 'Lucky Smith', desc: '+10% higher-rarity weight per level', cur: 'essence', base: 40, g: 1.6, now: l => `+${l * 10}% rare odds` },
+            { id: 'refundBoost', cat: 'FORGE', name: 'Prospector', desc: '+4% chance to refund a craft\'s Iron per level (max 80%)', cur: 'gold', base: 350, g: 1.7, now: l => `${Math.min(80, l * 4)}% refund` },
+            { id: 'salvageBoost', cat: 'FORGE', name: 'Salvage Expert', desc: '+10% Essence from salvaging per level', cur: 'gold', base: 200, g: 1.6, now: l => `+${l * 10}% essence` },
+            { id: 'goldBoost', cat: 'ECONOMY', name: 'Bounty Hunter', desc: '+15% Gold drop per level', cur: 'gold', base: 100, g: 1.7, now: l => `+${l * 15}% gold` },
+            { id: 'xpBoost', cat: 'ECONOMY', name: 'Fast Learner', desc: '+15% Combat XP per level', cur: 'gold', base: 150, g: 1.7, now: l => `+${l * 15}% XP` },
+            { id: 'mineYieldBoost', cat: 'ECONOMY', name: 'Deep Excavation', desc: '+25% Mine ore yields per level', cur: 'gold', base: 300, g: 1.7, now: l => `+${l * 25}% ore` },
+            { id: 'diamondBoost', cat: 'ECONOMY', name: 'Gem Hunter', desc: '+1 Diamond per boss kill per level', cur: 'essence', base: 60, g: 1.8, now: l => `+${l} 💎/boss` }
+        ];
+
+        const PET_R = [
+            { n: 'Common', c: '#9ca3af', m: 1 }, { n: 'Uncommon', c: '#22c55e', m: 1.6 }, { n: 'Rare', c: '#3b82f6', m: 2.5 },
+            { n: 'Epic', c: '#a855f7', m: 4 }, { n: 'Legendary', c: '#eab308', m: 6.5 }, { n: 'Mythic', c: '#ef4444', m: 10 }
+        ];
+        const PET_SPECIES = [
+            { id: 'wolf', name: 'Dire Wolf', icon: 'fa-dog', color: '#9ca3af', key: 'atk', base: 0.03, label: 'Attack', f: 'pct' },
+            { id: 'dragon', name: 'Ember Drake', icon: 'fa-dragon', color: '#f97316', key: 'atk', base: 0.045, label: 'Attack', f: 'pct' },
+            { id: 'cat', name: 'Shadow Cat', icon: 'fa-cat', color: '#818cf8', key: 'crit', base: 0.5, label: 'Crit Chance', f: 'pts' },
+            { id: 'hippo', name: 'Stone Hippo', icon: 'fa-hippo', color: '#64748b', key: 'def', base: 0.03, label: 'Defense & HP', f: 'pct' },
+            { id: 'frog', name: 'Lucky Frog', icon: 'fa-frog', color: '#4ade80', key: 'gold', base: 0.05, label: 'Gold', f: 'pct' },
+            { id: 'crow', name: 'Wise Crow', icon: 'fa-crow', color: '#38bdf8', key: 'xp', base: 0.05, label: 'XP', f: 'pct' },
+            { id: 'spider', name: 'Forge Spider', icon: 'fa-spider', color: '#f43f5e', key: 'craft', base: 0.03, label: 'Craft Speed', f: 'pct' },
+            { id: 'fish', name: 'Cave Fish', icon: 'fa-fish', color: '#22d3ee', key: 'ore', base: 0.05, label: 'Ore Yield', f: 'pct' },
+            { id: 'horse', name: 'Fortune Steed', icon: 'fa-horse', color: '#eab308', key: 'luck', base: 0.04, label: 'Rare Drop Odds', f: 'pct' },
+            { id: 'dove', name: 'Healing Dove', icon: 'fa-dove', color: '#f8fafc', key: 'regen', base: 0.002, label: 'HP Regen /s', f: 'pct' },
+            { id: 'otter', name: 'Salvage Otter', icon: 'fa-otter', color: '#c084fc', key: 'ess', base: 0.04, label: 'Essence', f: 'pct' }
+        ];
+        const EGGS = {
+            wild: { n: 'Wild Egg', cost: 15, w: [60, 28, 9, 2.5, 0.5, 0] },
+            mythic: { n: 'Mythic Egg', cost: 60, w: [0, 30, 40, 22, 7, 1] }
+        };
+
+        const TREE = [
+            { id: 'soulCore', name: 'Soul Core', desc: '+10% gold & XP. The root of all paths.', max: 1, cost: 5, req: [], c: 2, r: 0 },
+            { id: 'goldenAnvil', name: 'Golden Anvil', desc: '+25% gear power, +20% ATK / rank', max: 5, cost: 10, req: ['soulCore'], c: 0, r: 1 },
+            { id: 'forgeFury', name: 'Forge Fury', desc: '+20% craft speed / rank', max: 3, cost: 20, req: ['goldenAnvil'], c: 0, r: 2 },
+            { id: 'masterwork', name: 'Masterwork', desc: '+15% rare drop odds / rank', max: 3, cost: 30, req: ['forgeFury'], c: 0, r: 3 },
+            { id: 'bossSlayer', name: 'Boss Slayer', desc: '+40% boss damage / rank', max: 5, cost: 25, req: ['soulCore'], c: 1, r: 1 },
+            { id: 'warlord', name: 'Warlord', desc: '+10% attack / rank', max: 5, cost: 35, req: ['bossSlayer'], c: 1, r: 2 },
+            { id: 'bloodlust', name: 'Bloodlust', desc: '+1.5% crit chance / rank', max: 3, cost: 45, req: ['warlord'], c: 1, r: 3 },
+            { id: 'soulHarvest', name: 'Soul Harvest', desc: '+50% gold & XP / rank', max: 5, cost: 15, req: ['soulCore'], c: 2, r: 1 },
+            { id: 'treasureHunter', name: 'Treasure Hunter', desc: '+2% Treasure Goblin chance / rank', max: 3, cost: 30, req: ['soulHarvest'], c: 2, r: 2 },
+            { id: 'diamondVein', name: 'Diamond Vein', desc: '+2 diamonds per boss / rank', max: 3, cost: 40, req: ['treasureHunter'], c: 2, r: 3 },
+            { id: 'soulEcho', name: 'Soul Echo', desc: '+15% Soul Shards gained / rank', max: 5, cost: 15, req: ['soulCore'], c: 3, r: 1 },
+            { id: 'headStart', name: 'Head Start', desc: 'Begin each run with +1,000 gold & +100 iron / rank', max: 5, cost: 25, req: ['soulEcho'], c: 3, r: 2 },
+            { id: 'petBond', name: 'Pet Bond', desc: '+1 pet slot / rank', max: 2, cost: 50, req: ['headStart'], c: 3, r: 3 },
+            { id: 'casino', name: 'High Stakes', desc: 'Unlocks the Gambling tab + Coin Flip', max: 1, cost: 20, req: ['soulCore'], c: 4, r: 1 },
+            { id: 'slotsHall', name: 'Slots Hall', desc: 'Unlocks the Slot Machine', max: 1, cost: 30, req: ['casino'], c: 4, r: 2 },
+            { id: 'blackjackTable', name: 'Card Table', desc: 'Unlocks Blackjack', max: 1, cost: 45, req: ['slotsHall'], c: 4, r: 3 },
+            { id: 'rouletteWheel', name: 'Roulette Wheel', desc: 'Unlocks Roulette', max: 1, cost: 60, req: ['blackjackTable'], c: 4, r: 4 },
+            { id: 'vipLounge', name: 'VIP Lounge', desc: 'Unlocks Lucky Dice, +3% payouts / rank', max: 3, cost: 80, req: ['rouletteWheel'], c: 4, r: 5 },
+            { id: 'ascend', name: 'Ascension', desc: '+50% gold/XP, +25% ATK, +25% shards', max: 1, cost: 100, req: ['masterwork', 'bloodlust', 'diamondVein'], c: 1, r: 4.2 }
+        ];
+
+        // Master Game State
+        class GameState {
+            constructor() {
+                this.gold = 0;
+                this.essence = 0;
+                this.diamonds = 0;
+                this.shards = 0;
+
+                this.hero = {
+                    level: 1,
+                    xp: 0,
+                    xpReq: 50,
+                    statPoints: 0,
+                    stats: { str: 10, agi: 10, vit: 10, int: 10 },
+                    equipment: { head: null, chest: null, weapon: null, shield: null, feet: null, ring: null },
+                    hp: null
+                };
+
+                this.inventory = [];
+                this.maxInventory = 30;
+                this.selectedItemIndex = null;
+                this.autoSalvageTier = -1; // -1 = Disabled, 0 = Common, 1 = Uncommon, etc.
+
+                this.forge = {
+                    autoCraft: false,
+                    autoEquip: false,
+                    autoSalvageWorse: false,
+                    speedLvl: 1,
+                    multiLvl: 0,
+                    rarityLvl: 1,
+                    powerLvl: 1,
+                    lastCraftTime: 0
+                };
+
+                this.ores = {
+                    iron: { amount: 50, minerLvl: 1 },
+                    mithril: { amount: 0, minerLvl: 0 },
+                    adamantite: { amount: 0, minerLvl: 0 },
+                    runite: { amount: 0, minerLvl: 0 },
+                    celestial: { amount: 0, minerLvl: 0 }
+                };
+
+                this.dungeon = {
+                    zone: 1,
+                    stage: 1,
+                    highestStage: 1,
+                    inBossFight: false,
+                    bossTimer: 30,
+                    monsterHp: 40,
+                    monsterMaxHp: 40,
+                    monsterAtk: 5,
+                    kills: 0,
+                    bossFailed: false
+                };
+
+                this.skills = {
+                    goldBoost: 0,
+                    xpBoost: 0,
+                    craftSpeedBoost: 0,
+                    mineYieldBoost: 0, atkBoost: 0, defBoost: 0, critBoost: 0, critDmg: 0, regenBoost: 0, strikeBoost: 0, luckBoost: 0, refundBoost: 0, salvageBoost: 0, diamondBoost: 0
+                };
+
+                this.reforgeRelics = Object.fromEntries(TREE.map(n => [n.id, 0]));
+
+                this.stats = { kills: 0, crafted: 0, time: 0, deaths: 0, bosses: 0, bestHit: 0 };
+                this.achv = {};
+                this.pets = { owned: {}, active: [], hatched: 0, lastFree: 0 };
+                this.lastSaveTimestamp = Date.now();
+            }
+        }
+
+        class GameEngine {
+            constructor() {
+                this.state = new GameState();
+                this.canvas = null;
+                this.ctx = null;
+                this.particles = [];
+                this.damageNumbers = [];
+                this.heroAnimOffset = 0;
+                this.monsterAnimOffset = 0;
+                this.heroAttackTimer = 0;
+            }
+
+            init() {
+                this.canvas = document.getElementById('combat-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.resizeCanvas();
+                window.addEventListener('resize', () => this.resizeCanvas());
+
+                this.loadGame();
+                this.renderAutoSalvageButtons();
+                this.renderMines();
+                this.renderSkills();
+                this.renderSoulShop();
+
+                this.renderInventory(); this.renderAchievements(); this.renderPets(); this.renderGamble(); this.renderSoulShop();
+                document.getElementById('toggle-autocraft').checked = this.state.forge.autoCraft;
+                document.getElementById('toggle-autoequip').checked = this.state.forge.autoEquip;
+                document.getElementById('toggle-salvage-worse').checked = this.state.forge.autoSalvageWorse;
+                window.addEventListener('beforeunload', () => this.saveGame());
+                window.addEventListener('keydown', e => {
+                    if (!document.getElementById('modal').classList.contains('hidden')) return;
+                    const k = e.key.toLowerCase(), d = this.state.dungeon;
+                    if (k === 'p') this.useStrike();
+                    if (k === 'b' && d.stage % 5 === 0 && !d.inBossFight) this.challengeBoss();
+                });
+                if (this._welcome) this.modal('Welcome back!', this._welcome);
+                this.spawnMonster();
+                // Start loops
+                requestAnimationFrame((t) => this.gameLoop(t));
+                setInterval(() => this.secondTick(), 1000);
+                setInterval(() => this.saveGame(), 15000);
+
+                this.updateUI();
+                this.logCombat("Welcome back to Forge Master!");
+            }
+
+            resizeCanvas() {
+                if (!this.canvas) return;
+                const rect = this.canvas.getBoundingClientRect();
+                this.canvas.width = rect.width;
+                this.canvas.height = rect.height;
+            }
+
+            // Save / Load system
+            saveGame() {
+                this.state.lastSaveTimestamp = Date.now();
+                localStorage.setItem('forge_master_save', JSON.stringify(this.state));
+                const statusEl = document.getElementById('save-status');
+                if (statusEl) {
+                    statusEl.innerHTML = `<i class="fa-solid fa-check text-green-400"></i> Saved`;
+                    setTimeout(() => {
+                        statusEl.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Saved`;
+                    }, 2000);
+                }
+            }
+
+            loadGame() {
+                const data = localStorage.getItem('forge_master_save');
+                if (data) {
+                    try {
+                        const parsed = JSON.parse(data);
+                        const merge = (t, src) => { for (const k in src) { if (src[k] && typeof src[k] === 'object' && !Array.isArray(src[k]) && t[k] && typeof t[k] === 'object') merge(t[k], src[k]); else t[k] = src[k]; } return t; };
+                        this.state = merge(new GameState(), parsed);
+                        this.state.dungeon.inBossFight = false;
+                        // Offline earnings calculation
+                        const now = Date.now();
+                        const secondsOffline = Math.min(86400, Math.floor((now - (this.state.lastSaveTimestamp || now)) / 1000));
+                        if (secondsOffline > 5) {
+                            const offlineGold = Math.floor(secondsOffline * (this.state.dungeon.stage * 1.5));
+                            this.state.gold += offlineGold;
+                            Object.keys(this.state.ores).forEach(k => { const o = this.state.ores[k]; o.amount += o.minerLvl * secondsOffline; });
+                            this.logCombat(`Offline gains: Earned +${this.formatNum(offlineGold)} Gold over ${secondsOffline}s.`);
+                            this._welcome = `You were away for <b>${Math.floor(secondsOffline / 60)}m</b>.<br>Earned <b class="text-amber-300">+${this.formatNum(offlineGold)} gold</b> and mined ore while you were gone.`;
+                        }
+                    } catch (e) {
+                        console.error("Failed to load save", e);
+                    }
+                }
+                this.recalculateHeroStats();
+            }
+
+            toggleAudio() {
+                audio.enabled = !audio.enabled;
+                document.getElementById('audio-icon').className = audio.enabled ? "fa-solid fa-volume-high" : "fa-solid fa-volume-xmark text-red-400";
+            }
+
+            switchTab(tabId) {
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+                document.querySelectorAll('.tab-btn').forEach(el => {
+                    el.classList.remove('active', 'text-amber-500');
+                    el.classList.add('text-slate-400');
+                });
+
+                document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+                this.updateUI();
+                const btn = document.getElementById(`tab-btn-${tabId}`);
+                btn.classList.add('active', 'text-amber-500');
+                btn.classList.remove('text-slate-400');
+            }
+
+            formatNum(num) {
+                const units = [[1e15, 'Qa'], [1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
+                for (const [v, u] of units) if (num >= v) return (num / v).toFixed(2) + u;
+                return Math.floor(num).toLocaleString();
+            }
+
+            // Stat Calculation
+            recalculateHeroStats() {
+                const s = this.state.hero.stats;
+                let atk = s.str * 3 + s.agi * 1;
+                let def = s.vit * 2 + s.str * 1;
+                let hp = s.vit * 15 + 50;
+                let crit = 5 + (s.agi * 0.2);
+
+                // Add gear stats
+                Object.values(this.state.hero.equipment).forEach(item => {
+                    if (item) {
+                        if (item.statType === 'atk') atk += item.statValue;
+                        if (item.statType === 'def') def += item.statValue;
+                        if (item.statType === 'hp') hp += item.statValue * 5;
+                    }
+                });
+
+                crit = Math.min(75, crit + this.state.skills.critBoost + this.petBonus('crit'));
+                def = Math.floor(def * (1 + this.state.skills.defBoost * 0.05 + this.petBonus('def')));
+                hp = Math.floor(hp * (1 + this.state.skills.defBoost * 0.05 + this.petBonus('def')));
+                // Add Soul Relic bonuses
+                const relicAtkBonus = 1 + (this.state.reforgeRelics.goldenAnvil * 0.2);
+                atk = Math.floor(atk * relicAtkBonus * (1 + this.state.skills.atkBoost * 0.05 + this.petBonus('atk')));
+
+                this.heroDerived = { atk, def, hp, crit };
+                const h = this.state.hero; h.hp = (h.hp == null) ? hp : Math.min(h.hp, hp);
+                this.updateUI();
+            }
+
+            allocStat(stat) {
+                if (this.state.hero.statPoints > 0) {
+                    this.state.hero.stats[stat]++;
+                    this.state.hero.statPoints--;
+                    this.recalculateHeroStats();
+                }
+            }
+
+            // FORGE MECHANICS
+            manualForge(event) {
+                audio.playAnvil();
+                this.createSparks(event);
+                this.craftItem();
+            }
+
+            createSparks(e) {
+                const container = document.getElementById('spark-container');
+                if (!container) return;
+                const rect = container.getBoundingClientRect();
+                const x = e ? e.clientX - rect.left : rect.width / 2;
+                const y = e ? e.clientY - rect.top : rect.height / 2;
+
+                for (let i = 0; i < 8; i++) {
+                    const spark = document.createElement('div');
+                    spark.className = 'absolute w-2 h-2 bg-amber-400 rounded-full spark-anim pointer-events-none';
+                    const tx = (Math.random() - 0.5) * 80;
+                    const ty = (Math.random() - 0.5) * 80;
+                    spark.style.left = `${x}px`;
+                    spark.style.top = `${y}px`;
+                    spark.style.setProperty('--tw-translate-x', `${tx}px`);
+                    spark.style.setProperty('--tw-translate-y', `${ty}px`);
+                    container.appendChild(spark);
+                    setTimeout(() => spark.remove(), 400);
+                }
+            }
+
+            craftItem() {
+                const st = this.state, now = Date.now();
+                const warn = (m) => { if (now - (this._warn || 0) > 4000) { this._warn = now; this.logCombat(m); } };
+                if (st.inventory.length >= st.maxInventory) { warn("<span class='text-rose-400'>Inventory Full! Salvage gear to craft more.</span>"); return; }
+                if (st.ores.iron.amount < 2) { warn("<span class='text-rose-400'>Out of Iron Ore! Hire more miners.</span>"); return; }
+                st.ores.iron.amount -= 2;
+                if (Math.random() < Math.min(0.8, st.skills.refundBoost * 0.04)) st.ores.iron.amount += 2;
+                let bonus = 0;
+                for (let i = ORES.length - 1; i >= 1; i--) {
+                    const o = st.ores[ORES[i].id];
+                    if (o.amount >= 1) { o.amount -= 1; bonus = i; break; }
+                }
+                const n = Math.random() < Math.min(0.9, st.forge.multiLvl * 0.05) ? 2 : 1;
+                for (let k = 0; k < n; k++) { this.makeItem(bonus); this.state.stats.crafted++; }
+                this.updateUI();
+                this.renderInventory();
+            }
+
+            makeItem(bonus) {
+                if (this.state.inventory.length >= this.state.maxInventory) return;
+                // Determine Rarity
+                const rarityLvl = this.state.forge.rarityLvl;
+                let roll = Math.random() * 100;
+                let selectedRarity = RARITIES[0];
+
+                // Adjusted chances based on rarity upgrade level
+                let cumulative = 0;
+                for (let r of RARITIES) {
+                    let weight = r.chance;
+                    if (r.id !== 'common') weight *= (1 + rarityLvl * 0.15 + bonus * 0.5 + (this.state.skills.luckBoost * 0.1 + this.petBonus('luck')));
+                    cumulative += weight;
+                }
+
+                let currentWeight = 0;
+                let rng = Math.random() * cumulative;
+                for (let r of RARITIES) {
+                    let weight = r.chance;
+                    if (r.id !== 'common') weight *= (1 + rarityLvl * 0.15 + bonus * 0.5 + (this.state.skills.luckBoost * 0.1 + this.petBonus('luck')));
+                    currentWeight += weight;
+                    if (rng <= currentWeight) {
+                        selectedRarity = r;
+                        break;
+                    }
+                }
+
+                // Determine Type & Base Stat
+                const itemType = ITEM_TYPES[Math.floor(Math.random() * ITEM_TYPES.length)];
+                const powerBonus = 1 + (this.state.forge.powerLvl * 0.1) + (this.state.reforgeRelics.goldenAnvil * 0.25);
+                const baseValue = Math.floor((10 + (this.state.dungeon.stage * 3)) * selectedRarity.multiplier * powerBonus * (1 + bonus * 0.35));
+
+                const newItem = {
+                    id: Date.now() + Math.random(),
+                    name: `${selectedRarity.name} ${itemType.name}`,
+                    type: itemType.id,
+                    typeName: itemType.name,
+                    icon: itemType.icon,
+                    rarity: selectedRarity.id,
+                    rarityIndex: RARITIES.findIndex(r => r.id === selectedRarity.id),
+                    statType: itemType.stat,
+                    statValue: baseValue,
+                    level: 1
+                };
+
+                // Check auto salvage threshold
+                const eq0 = this.state.hero.equipment[newItem.type];
+                if (newItem.rarityIndex <= this.state.autoSalvageTier || (this.state.forge.autoSalvageWorse && eq0 && newItem.statValue <= eq0.statValue)) {
+                    const essenceGain = Math.floor((newItem.rarityIndex + 1) * 5 * this.essMult());
+                    this.state.essence += essenceGain;
+                    this.logCombat(`Auto-salvaged ${newItem.name} for +${essenceGain} Essence.`);
+                } else {
+                    this.state.inventory.push(newItem);
+                    const eq = this.state.hero.equipment[newItem.type];
+                    if (this.state.forge.autoEquip && (!eq || newItem.statValue > eq.statValue)) {
+                        this.state.inventory.pop();
+                        this.state.hero.equipment[newItem.type] = newItem;
+                        if (eq) this.state.inventory.push(eq);
+                        this.recalculateHeroStats();
+                    }
+                    if (newItem.rarityIndex >= 4) this.toast(`✨ Forged <b style="color:${selectedRarity.color}">${newItem.name}</b>!`);
+                    this.logCombat(`Crafted <span class="${selectedRarity.class} font-bold">${newItem.name}</span> (+${newItem.statValue} ${newItem.statType.toUpperCase()})`);
+                }
+
+                this.updateUI();
+                this.renderInventory();
+            }
+
+            toggleAutoCraft(enabled) {
+                this.state.forge.autoCraft = enabled;
+            }
+
+            buyForgeUpgrade(type) {
+                if (type === 'speed') {
+                    const cost = Math.floor(10 * Math.pow(1.5, this.state.forge.speedLvl - 1));
+                    if (this.state.gold >= cost) {
+                        this.state.gold -= cost;
+                        this.state.forge.speedLvl++;
+                    }
+                } else if (type === 'multi') {
+                    const cost = Math.floor(50 * Math.pow(1.8, this.state.forge.multiLvl));
+                    if (this.state.gold >= cost) {
+                        this.state.gold -= cost;
+                        this.state.forge.multiLvl++;
+                    }
+                } else if (type === 'rarity') {
+                    const cost = Math.floor(100 * Math.pow(1.6, this.state.forge.rarityLvl - 1));
+                    if (this.state.gold >= cost) {
+                        this.state.gold -= cost;
+                        this.state.forge.rarityLvl++;
+                    }
+                } else if (type === 'power') {
+                    const cost = Math.floor(200 * Math.pow(1.7, this.state.forge.powerLvl - 1));
+                    if (this.state.gold >= cost) {
+                        this.state.gold -= cost;
+                        this.state.forge.powerLvl++;
+                    }
+                }
+                this.updateUI();
+            }
+
+            // AUTO SALVAGE CONTROLS
+            renderAutoSalvageButtons() {
+                const container = document.getElementById('auto-salvage-buttons');
+                if (!container) return;
+                container.innerHTML = '';
+
+                const btnNone = document.createElement('button');
+                btnNone.className = `px-3 py-1 rounded text-xs font-bold transition border ${this.state.autoSalvageTier === -1 ? 'bg-amber-600 border-amber-500 text-slate-950' : 'bg-slate-950 border-slate-800 text-slate-400'}`;
+                btnNone.textContent = 'Off';
+                btnNone.onclick = () => { this.state.autoSalvageTier = -1; this.renderAutoSalvageButtons(); };
+                container.appendChild(btnNone);
+
+                RARITIES.slice(0, 6).forEach((r, idx) => {
+                    const btn = document.createElement('button');
+                    const isActive = this.state.autoSalvageTier === idx;
+                    btn.className = `px-3 py-1 rounded text-xs font-bold transition border ${isActive ? 'bg-amber-600 border-amber-500 text-slate-950' : 'bg-slate-950 border-slate-800 ' + r.class}`;
+                    btn.textContent = `≤ ${r.name}`;
+                    btn.onclick = () => { this.state.autoSalvageTier = idx; this.renderAutoSalvageButtons(); };
+                    container.appendChild(btn);
+                });
+            }
+
+            // INVENTORY & PAPERDOLL
+            renderInventory() {
+                const grid = document.getElementById('inventory-grid');
+                if (!grid) return;
+                grid.innerHTML = '';
+
+                this.state.inventory.forEach((item, index) => {
+                    const rarityObj = RARITIES.find(r => r.id === item.rarity);
+                    const card = document.createElement('div');
+                    card.className = `inventory-slot border-2 ${rarityObj.class} ${rarityObj.bgClass} rounded-xl h-16 flex flex-col items-center justify-center cursor-pointer relative hover:scale-105 transition transform`;
+                    card.onclick = () => this.selectItem(index);
+
+                    if (this.state.selectedItemIndex === index) {
+                        card.classList.add('ring-2', 'ring-amber-400');
+                    }
+
+                    card.innerHTML = `
+                        <i class="fa-solid ${item.icon} text-lg"></i>
+                        <span class="text-[9px] font-bold mt-1 uppercase">${item.statType}+${item.statValue}</span>
+                    `;
+                    grid.appendChild(card);
+                });
+
+                document.getElementById('inv-count').textContent = this.state.inventory.length;
+                document.getElementById('inv-max').textContent = this.state.maxInventory;
+
+                this.renderPaperdoll();
+            }
+
+            selectItem(index) {
+                this.state.selectedItemIndex = index;
+                const item = this.state.inventory[index];
+                const detailCard = document.getElementById('item-detail-card');
+
+                if (!item) {
+                    detailCard.classList.add('hidden');
+                    return;
+                }
+
+                const rarityObj = RARITIES.find(r => r.id === item.rarity);
+                detailCard.classList.remove('hidden');
+                document.getElementById('item-detail-name').textContent = item.name;
+                document.getElementById('item-detail-name').className = `font-bold text-sm ${rarityObj.class}`;
+                document.getElementById('item-detail-type').textContent = `${rarityObj.name} ${item.typeName} (Level ${item.level})`;
+                document.getElementById('item-detail-stats').innerHTML = `
+                    <div>Primary Stat: <strong class="text-amber-400">+${item.statValue} ${item.statType.toUpperCase()}</strong></div>
+                    ${(() => { const e = this.state.hero.equipment[item.type]; if (!e) return '<div class="text-emerald-400">Empty slot: free upgrade!</div>'; const df = item.statValue - e.statValue; return `<div class="${df >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${df >= 0 ? '▲ +' : '▼ '}${df} vs equipped (+${e.statValue})</div>`; })()}
+                `;
+
+                document.getElementById('btn-item-equip').onclick = () => this.equipSelectedItem();
+                document.getElementById('btn-item-upgrade').onclick = () => this.upgradeSelectedItem();
+                document.getElementById('btn-item-salvage').onclick = () => this.salvageSelectedItem();
+
+                this.renderInventory();
+            }
+
+            equipSelectedItem() {
+                if (this.state.selectedItemIndex === null) return;
+                const item = this.state.inventory[this.state.selectedItemIndex];
+                if (!item) return;
+
+                const currentEquipped = this.state.hero.equipment[item.type];
+                this.state.hero.equipment[item.type] = item;
+                this.state.inventory.splice(this.state.selectedItemIndex, 1);
+                
+                if (currentEquipped) {
+                    this.state.inventory.push(currentEquipped);
+                }
+
+                this.state.selectedItemIndex = null;
+                document.getElementById('item-detail-card').classList.add('hidden');
+                this.recalculateHeroStats();
+                this.renderInventory();
+            }
+
+            upgradeSelectedItem() {
+                if (this.state.selectedItemIndex === null) return;
+                const item = this.state.inventory[this.state.selectedItemIndex];
+                if (!item) return;
+
+                const cost = item.level * 15;
+                if (this.state.essence >= cost) {
+                    this.state.essence -= cost;
+                    item.level++;
+                    item.statValue = Math.floor(item.statValue * 1.2) + 2;
+                    this.logCombat(`Upgraded ${item.name} to Level ${item.level}!`);
+                    this.selectItem(this.state.selectedItemIndex);
+                    this.updateUI();
+                } else {
+                    this.logCombat("<span class='text-rose-400'>Not enough Essence to upgrade!</span>");
+                }
+            }
+
+            salvageSelectedItem() {
+                if (this.state.selectedItemIndex === null) return;
+                const item = this.state.inventory[this.state.selectedItemIndex];
+                if (!item) return;
+
+                const essenceGain = Math.floor((item.rarityIndex + 1) * 8 * item.level * this.essMult());
+                this.state.essence += essenceGain;
+                this.state.inventory.splice(this.state.selectedItemIndex, 1);
+                this.state.selectedItemIndex = null;
+
+                document.getElementById('item-detail-card').classList.add('hidden');
+                this.logCombat(`Salvaged item for +${essenceGain} Essence.`);
+                this.updateUI();
+                this.renderInventory();
+            }
+
+            autoEquipBest() {
+                ITEM_TYPES.forEach(t => {
+                    const available = this.state.inventory.filter(i => i.type === t.id);
+                    if (available.length > 0) {
+                        available.sort((a, b) => b.statValue - a.statValue);
+                        const best = available[0];
+                        const equipped = this.state.hero.equipment[t.id];
+
+                        if (!equipped || best.statValue > equipped.statValue) {
+                            const idx = this.state.inventory.indexOf(best);
+                            this.state.inventory.splice(idx, 1);
+                            this.state.hero.equipment[t.id] = best;
+                            if (equipped) this.state.inventory.push(equipped);
+                        }
+                    }
+                });
+                this.recalculateHeroStats();
+                this.renderInventory();
+                this.logCombat("Auto-equipped best available items!");
+            }
+
+            salvageAllNonEquipped() {
+                let gain = 0;
+                this.state.inventory.forEach(item => {
+                    gain += Math.floor((item.rarityIndex + 1) * 8 * item.level * this.essMult());
+                });
+                this.state.inventory = [];
+                this.state.essence += gain;
+                this.state.selectedItemIndex = null;
+                document.getElementById('item-detail-card').classList.add('hidden');
+                this.logCombat(`Salvaged all inventory gear for +${gain} Essence.`);
+                this.updateUI();
+                this.renderInventory();
+            }
+
+            unequipSlot(type) {
+                const item = this.state.hero.equipment[type];
+                if (item && this.state.inventory.length < this.state.maxInventory) {
+                    this.state.inventory.push(item);
+                    this.state.hero.equipment[type] = null;
+                    this.recalculateHeroStats();
+                    this.renderInventory();
+                }
+            }
+
+            renderPaperdoll() {
+                ITEM_TYPES.forEach(t => {
+                    const slotEl = document.getElementById(`slot-${t.id}`);
+                    const equipped = this.state.hero.equipment[t.id];
+                    if (!slotEl) return;
+
+                    if (equipped) {
+                        const rarityObj = RARITIES.find(r => r.id === equipped.rarity);
+                        slotEl.className = `equip-slot border-2 ${rarityObj.class} ${rarityObj.bgClass} rounded-xl h-20 flex flex-col items-center justify-center cursor-pointer relative`;
+                        slotEl.innerHTML = `
+                            <i class="fa-solid ${equipped.icon} text-lg"></i>
+                            <span class="text-[9px] font-bold mt-1 text-center truncate w-full px-1">${equipped.name}</span>
+                            <span class="text-[9px] text-amber-400 font-bold">+${equipped.statValue}</span>
+                        `;
+                    } else {
+                        slotEl.className = `equip-slot border-2 border-dashed border-slate-800 rounded-xl h-20 flex flex-col items-center justify-center cursor-pointer hover:border-amber-500/50 relative bg-slate-900/50`;
+                        slotEl.innerHTML = `
+                            <i class="fa-solid ${t.icon} text-slate-700 text-xl"></i>
+                            <span class="text-[10px] text-slate-500 mt-1">${t.name}</span>
+                        `;
+                    }
+                });
+            }
+
+            buyInvSlots() {
+                if (this.state.diamonds >= 10) { this.state.diamonds -= 10; this.state.maxInventory += 5; this.renderInventory(); this.updateUI(); }
+                else this.logCombat("<span class='text-rose-400'>Need 10 Diamonds (dropped by bosses).</span>");
+            }
+
+            resetSave() {
+                this.modal('Delete save?', 'This permanently erases all progress.', 'Delete', () => { this.saveGame = () => {}; localStorage.removeItem('forge_master_save'); location.reload(); });
+            }
+
+            useStrike() {
+                if ((this.strikeCd || 0) > 0) return;
+                this.strikeCd = Math.max(4, 12 - this.state.skills.strikeBoost * 0.5); this.shake = 12; this.heroLunge = 1; this.monsterFlash = 1;
+                audio.playLevelUp();
+                const dmg = Math.floor(this.heroDerived.atk * 8 * (this.state.dungeon.inBossFight ? 1 + this.state.reforgeRelics.bossSlayer * 0.4 : 1));
+                this.state.dungeon.monsterHp -= dmg;
+                this.addDamageNumber(dmg, true, false);
+                if (this.state.dungeon.monsterHp <= 0) this.onMonsterDefeated();
+            }
+
+            modal(title, body, yes = 'OK', cb = null) {
+                const m = document.getElementById('modal'), close = () => m.classList.add('hidden');
+                document.getElementById('modal-title').textContent = title;
+                document.getElementById('modal-body').innerHTML = body;
+                const y = document.getElementById('modal-yes'), n = document.getElementById('modal-no');
+                y.textContent = yes; n.classList.toggle('hidden', !cb);
+                y.onclick = () => { close(); if (cb) cb(); }; n.onclick = close;
+                m.classList.remove('hidden');
+            }
+
+            cycleSpeed() {
+                this.speedMul = ({ 1: 2, 2: 3, 3: 1 })[this.speedMul || 1];
+                document.getElementById('btn-speed').textContent = 'x' + this.speedMul;
+            }
+
+            updateFreeEgg() {
+                const b = document.getElementById('free-egg-btn');
+                if (!b) return;
+                const left = 600000 - (Date.now() - (this.state.pets.lastFree || 0));
+                b.disabled = left > 0;
+                b.innerHTML = left > 0 ? `🎁 Free Egg in ${Math.floor(left / 60000)}:${String(Math.floor(left % 60000 / 1000)).padStart(2, '0')}` : '🎁 Claim FREE Egg!';
+            }
+
+            claimFreeEgg() {
+                if (Date.now() - (this.state.pets.lastFree || 0) < 600000) return;
+                this.state.pets.lastFree = Date.now();
+                this.hatch('wild', true);
+            }
+
+            petSlots() { const l = this.state.hero.level; return 1 + (l >= 10) + (l >= 25) + (l >= 50) + this.state.reforgeRelics.petBond; }
+            petPower(p) { return PET_R[p.r].m * (1 + 0.3 * (p.s - 1)); }
+            petBonus(key) {
+                let t = 0; const pt = this.state.pets;
+                pt.active.forEach(id => { const p = pt.owned[id], sp = PET_SPECIES.find(x => x.id === id); if (p && sp && sp.key === key) t += sp.base * this.petPower(p); });
+                return t + this.treeBonus(key);
+            }
+            petText(sp, p) { const v = sp.base * this.petPower(p); return sp.f === 'pts' ? `+${v.toFixed(1)}% ${sp.label}` : `+${(v * 100).toFixed(sp.base < 0.01 ? 2 : 1)}% ${sp.label}`; }
+            petSummaryRows(row) {
+                const pt = this.state.pets;
+                const rows = [row('Pet slots', `${pt.active.length} / ${this.petSlots()}`), row('Pets collected', `${Object.keys(pt.owned).length} / ${PET_SPECIES.length}`)];
+                pt.active.forEach(id => { const sp = PET_SPECIES.find(x => x.id === id), p = pt.owned[id]; if (sp && p) rows.push(row(sp.name, this.petText(sp, p), 'text-emerald-300')); });
+                return rows;
+            }
+
+            hatch(type, free = false) {
+                const e = EGGS[type], pt = this.state.pets;
+                if (!free) {
+                    if (this.state.diamonds < e.cost) { this.toast(`Need ${e.cost} 💎 for a ${e.n}`); return; }
+                    this.state.diamonds -= e.cost;
+                }
+                let roll = Math.random() * e.w.reduce((a, b) => a + b, 0), r = 0;
+                for (; r < e.w.length; r++) { roll -= e.w[r]; if (roll < 0) break; }
+                r = Math.min(r, 5);
+                const sp = PET_SPECIES[Math.floor(Math.random() * PET_SPECIES.length)], cur = pt.owned[sp.id];
+                let msg;
+                if (!cur) { pt.owned[sp.id] = { r, s: 1 }; msg = `New pet: ${sp.name}!`; if (pt.active.length < this.petSlots()) pt.active.push(sp.id); }
+                else { if (r > cur.r) cur.r = r; if (cur.s < 10) cur.s++; msg = `${sp.name} ★${cur.s}`; }
+                pt.hatched++;
+                this.toast(`🥚 <b style="color:${PET_R[pt.owned[sp.id].r].c}">${PET_R[r].n} ${msg}</b>`);
+                audio.playLevelUp();
+                this.recalculateHeroStats(); this.renderPets(); this.updateUI();
+            }
+
+            togglePet(id) {
+                const pt = this.state.pets, i = pt.active.indexOf(id);
+                if (i >= 0) pt.active.splice(i, 1);
+                else if (pt.active.length < this.petSlots()) pt.active.push(id);
+                else { this.toast('Pet slots full! Unequip one first.'); return; }
+                this.recalculateHeroStats(); this.renderPets();
+            }
+
+            renderPets() {
+                const box = document.getElementById('pets-content');
+                if (!box) return;
+                const pt = this.state.pets;
+                const eggBtn = k => `<button onclick="game.hatch('${k}')" class="bg-slate-950 hover:border-cyan-500 border border-slate-700 rounded-xl p-3 text-left transition flex-1 min-w-[160px]">
+                    <div class="font-bold text-sm text-slate-100">🥚 ${EGGS[k].n}</div>
+                    <div class="text-xs text-cyan-300 font-bold">${EGGS[k].cost} 💎</div>
+                    <div class="text-[10px] text-slate-400 mt-1">${k === 'wild' ? 'Common to Legendary pets' : 'Uncommon to Mythic pets'}</div></button>`;
+                const cards = PET_SPECIES.map(sp => {
+                    const p = pt.owned[sp.id];
+                    if (!p) return `<div class="bg-slate-950 border border-slate-800 rounded-xl p-3 opacity-40 text-center"><i class="fa-solid ${sp.icon} text-2xl text-slate-600"></i><div class="text-xs mt-1 text-slate-500">???</div><div class="text-[10px] text-slate-600">${sp.label}</div></div>`;
+                    const on = pt.active.includes(sp.id), pr = PET_R[p.r];
+                    return `<div onclick="game.togglePet('${sp.id}')" class="cursor-pointer bg-slate-950 border-2 ${on ? 'ring-2 ring-amber-400' : ''} rounded-xl p-3 text-center hover:scale-105 transition" style="border-color:${pr.c}">
+                        <i class="fa-solid ${sp.icon} text-2xl" style="color:${sp.color}"></i>
+                        <div class="text-xs font-bold mt-1">${sp.name}</div>
+                        <div class="text-[10px] font-bold" style="color:${pr.c}">${pr.n} · ${'★'.repeat(Math.min(p.s, 5))}${p.s > 5 ? '+' + (p.s - 5) : ''}</div>
+                        <div class="text-[10px] text-emerald-300 mt-1">${this.petText(sp, p)}</div>
+                        <div class="text-[10px] ${on ? 'text-amber-400' : 'text-slate-500'}">${on ? 'EQUIPPED' : 'tap to equip'}</div></div>`;
+                }).join('');
+                box.innerHTML = `<div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+                    <h2 class="font-cinzel text-lg font-bold text-amber-400 mb-1">PET SANCTUARY</h2>
+                    <p class="text-xs text-slate-400 mb-4">Hatch eggs with diamonds (bosses also have a 25% chance to drop one). Duplicates add ★ stars (max 10), and a higher-rarity duplicate upgrades the pet. Slots: <b class="text-amber-300">${pt.active.length}/${this.petSlots()}</b> (unlock more at hero levels 10, 25 and 50). Pets are kept through Reforge.</p>
+                    <div class="flex flex-wrap gap-3">${eggBtn('wild')}${eggBtn('mythic')}<button id="free-egg-btn" onclick="game.claimFreeEgg()" class="bg-emerald-900/40 border border-emerald-500/50 text-emerald-200 font-bold text-sm rounded-xl px-4 py-3 flex-1 min-w-[160px] transition"></button></div></div>
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl"><h3 class="font-cinzel font-bold text-sm text-amber-400 mb-3">COLLECTION (${Object.keys(pt.owned).length}/${PET_SPECIES.length}) · eggs hatched: ${pt.hatched}</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">${cards}</div></div>`;
+                this.updateFreeEgg();
+            }
+
+            toast(msg) {
+                const box = document.getElementById('toasts');
+                if (!box) return;
+                const el = document.createElement('div');
+                el.className = 'toast bg-slate-900/95 border border-amber-500/50 text-amber-200 text-xs font-semibold px-3 py-2 rounded-lg shadow-xl';
+                el.innerHTML = msg;
+                box.appendChild(el);
+                while (box.children.length > 4) box.removeChild(box.firstChild);
+                setTimeout(() => el.remove(), 3500);
+            }
+
+            checkAchievements() {
+                let changed = false;
+                ACHV.forEach(a => {
+                    if (!this.state.achv[a.id] && a.ok(this.state)) {
+                        this.state.achv[a.id] = true; this.state.diamonds += a.r; changed = true;
+                        this.toast(`🏆 <b>${a.name}</b> +${a.r} 💎`);
+                        audio.playLevelUp();
+                    }
+                });
+                if (changed) { this.renderAchievements(); this.updateUI(); }
+            }
+
+            renderAchievements() {
+                const grid = document.getElementById('achv-grid');
+                if (!grid) return;
+                const done = ACHV.filter(a => this.state.achv[a.id]).length;
+                document.getElementById('achv-count').textContent = `(${done}/${ACHV.length})`;
+                grid.innerHTML = ACHV.map(a => {
+                    const u = this.state.achv[a.id];
+                    return `<div class="p-3 rounded-xl border ${u ? 'border-amber-500/60 bg-amber-500/10' : 'border-slate-800 bg-slate-950 opacity-60'} flex justify-between items-center">
+                        <div><div class="font-bold text-sm ${u ? 'text-amber-300' : 'text-slate-300'}">${u ? '🏆' : '🔒'} ${a.name}</div><div class="text-xs text-slate-400">${a.desc}</div></div>
+                        <div class="text-xs font-bold text-cyan-300">+${a.r} 💎</div></div>`;
+                }).join('');
+            }
+
+            burst(color) {
+                const w = this.canvas.width, h = this.canvas.height;
+                for (let i = 0; i < 16; i++) this.particles.push({ x: w - 70, y: h - 62, vx: (Math.random() - 0.5) * 6, vy: -Math.random() * 5 - 1, life: 1, color: i % 2 ? color : '#fbbf24' });
+            }
+
+            // MINES SYSTEM
+            renderMines() {
+                const container = document.getElementById('mines-container');
+                if (!container) return;
+                container.innerHTML = '';
+
+                ORES.forEach(ore => {
+                    const data = this.state.ores[ore.id];
+                    const cost = Math.floor(ore.baseCost * Math.pow(1.6, data.minerLvl));
+                    const card = document.createElement('div');
+                    card.className = "bg-slate-950 border border-slate-800 p-4 rounded-xl flex justify-between items-center";
+                    card.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg" style="background-color: ${ore.color}20; color: ${ore.color}">
+                                <i class="fa-solid fa-gem"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm text-slate-200">${ore.name}</div>
+                                <div class="text-xs text-slate-400">Stock: <span class="font-bold text-slate-200" id="ore-amt-${ore.id}">${this.formatNum(data.amount)}</span></div>
+                                <div class="text-[10px] text-amber-400">Miners: Lvl ${data.minerLvl} (+${data.minerLvl}/sec)</div>
+                            </div>
+                        </div>
+                        <button onclick="game.buyMiner('${ore.id}')" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg transition">
+                            Hire Miner (${this.formatNum(cost)} Gold)
+                        </button>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+
+            buyMiner(oreId) {
+                const ore = ORES.find(o => o.id === oreId);
+                const data = this.state.ores[oreId];
+                const cost = Math.floor(ore.baseCost * Math.pow(1.6, data.minerLvl));
+
+                if (this.state.gold >= cost) {
+                    this.state.gold -= cost;
+                    data.minerLvl++;
+                    this.renderMines();
+                    this.updateUI();
+                }
+            }
+
+            // TECH TREE / SKILLS
+            renderSkills() {
+                const c = document.getElementById('skills-grid');
+                if (!c) return;
+                c.innerHTML = '';
+                let cat = '';
+                SKILLS.forEach(d => {
+                    if (d.cat !== cat) {
+                        cat = d.cat;
+                        const h = document.createElement('div');
+                        h.className = 'md:col-span-2 font-cinzel font-bold text-sm text-amber-500 border-b border-slate-800 pb-1 mt-2';
+                        h.textContent = cat; c.appendChild(h);
+                    }
+                    const card = document.createElement('div');
+                    card.className = 'bg-slate-950 border border-slate-800 p-4 rounded-xl flex justify-between items-center gap-3';
+                    card.innerHTML = `<div><div class="font-bold text-sm text-slate-200">${d.name}</div><div class="text-xs text-slate-400">${d.desc}</div><div class="text-xs text-amber-400 mt-1" id="skill-lvl-${d.id}"></div></div>
+                        <button id="skill-btn-${d.id}" onclick="game.buySkill('${d.id}')" class="shrink-0 ${d.cur === 'essence' ? 'bg-purple-600 hover:bg-purple-500 text-slate-100' : 'bg-amber-600 hover:bg-amber-500 text-slate-950'} font-bold text-xs px-3 py-2 rounded-lg transition"></button>`;
+                    c.appendChild(card);
+                });
+                this.refreshSkills();
+            }
+
+            skillCost(d) { return Math.floor(d.base * Math.pow(d.g, this.state.skills[d.id])); }
+
+            refreshSkills() {
+                SKILLS.forEach(d => {
+                    const b = document.getElementById('skill-btn-' + d.id);
+                    if (!b) return;
+                    const lvl = this.state.skills[d.id], cost = this.skillCost(d);
+                    document.getElementById('skill-lvl-' + d.id).textContent = `Lvl ${lvl} · ${d.now(lvl)}`;
+                    b.textContent = `${this.formatNum(cost)} ${d.cur === 'essence' ? 'Essence' : 'Gold'}`;
+                    b.classList.toggle('opacity-40', (d.cur === 'essence' ? this.state.essence : this.state.gold) < cost);
+                });
+            }
+
+            buySkill(id) {
+                const d = SKILLS.find(x => x.id === id), cost = this.skillCost(d), k = d.cur === 'essence' ? 'essence' : 'gold';
+                if (this.state[k] >= cost) { this.state[k] -= cost; this.state.skills[id]++; this.recalculateHeroStats(); this.refreshSkills(); this.updateUI(); }
+            }
+
+            essMult() { return 1 + this.state.skills.salvageBoost * 0.1 + (this.state.hero.stats.int - 10) * 0.01 + this.petBonus('ess'); }
+
+            rarityOdds(bonus = 0) {
+                const rl = this.state.forge.rarityLvl, luck = (this.state.skills.luckBoost * 0.1 + this.petBonus('luck'));
+                const w = RARITIES.map(r => r.chance * (r.id === 'common' ? 1 : 1 + rl * 0.15 + bonus * 0.5 + luck));
+                const t = w.reduce((a, b) => a + b, 0);
+                return w.map(x => x / t * 100);
+            }
+
+            renderStats() {
+                const st = this.state, s = st.hero.stats, hd = this.heroDerived, sk = st.skills, f = st.forge, rr = st.reforgeRelics, d = st.dungeon;
+                if (!hd) return;
+                const row = (l, v, c = 'text-slate-100') => `<div class="flex justify-between py-0.5"><span class="text-slate-400">${l}</span><span class="font-semibold ${c}">${v}</span></div>`;
+                const card = (t, rows) => `<div class="bg-slate-900 border border-slate-800 rounded-xl p-4"><div class="font-cinzel font-bold text-sm text-amber-400 mb-2">${t}</div>${rows.join('')}</div>`;
+                const eq = Object.values(st.hero.equipment).filter(Boolean);
+                const gear = t => eq.filter(i => i.statType === t).reduce((a, i) => a + i.statValue, 0);
+                const aps = 1 / (0.8 / (1 + (s.agi - 10) * 0.02));
+                const critMult = 1.8 + sk.critDmg * 0.1;
+                const intB = (s.int - 10) * 0.02;
+                const goldM = 1 + sk.goldBoost * 0.15 + rr.soulHarvest * 0.5 + this.petBonus('gold'), xpM = 1 + sk.xpBoost * 0.15 + rr.soulHarvest * 0.5 + intB + this.petBonus('xp');
+                let bonus = 0; for (let i = ORES.length - 1; i >= 1; i--) if (st.ores[ORES[i].id].amount >= 1) { bonus = i; break; }
+                const odds = this.rarityOdds(bonus);
+                const oddsRows = RARITIES.map((r, i) => row(r.name, (odds[i] < 1 ? odds[i].toFixed(2) : odds[i].toFixed(1)) + '%', 'rarity-' + r.id));
+                const time = st.stats.time, tStr = `${Math.floor(time / 3600)}h ${Math.floor(time % 3600 / 60)}m`;
+                const sumMine = Object.values(st.ores).reduce((a, o) => a + o.minerLvl, 0);
+                const html = [
+                    card('ATTRIBUTES', [row('Strength (STR)', s.str, 'text-rose-300'), row('Agility (AGI)', s.agi, 'text-emerald-300'), row('Vitality (VIT)', s.vit, 'text-blue-300'), row('Intelligence (INT)', s.int, 'text-purple-300'), row('Unspent points', st.hero.statPoints, 'text-amber-400'), row('Hero level', st.hero.level)]),
+                    card('OFFENSE', [row('Attack', this.formatNum(hd.atk), 'text-rose-400'), row('Attacks / second', aps.toFixed(2)), row('Crit chance', hd.crit.toFixed(1) + '%', 'text-amber-400'), row('Crit multiplier', 'x' + critMult.toFixed(1)), row('Boss damage bonus', '+' + rr.bossSlayer * 40 + '%'), row('Power Strike damage', this.formatNum(hd.atk * 8)), row('Power Strike cooldown', Math.max(4, 12 - sk.strikeBoost * 0.5).toFixed(1) + 's'), row('Best hit', this.formatNum(st.stats.bestHit || 0))]),
+                    card('DEFENSE', [row('Defense', this.formatNum(hd.def), 'text-blue-400'), row('Damage reduction', (hd.def / (100 + hd.def) * 100).toFixed(1) + '%'), row('Max HP', this.formatNum(hd.hp), 'text-emerald-400'), row('Current HP', this.formatNum(st.hero.hp)), row('HP regen', (2 + sk.regenBoost * 0.5).toFixed(1) + '% / sec'), row('Deaths', st.stats.deaths || 0)]),
+                    card('EQUIPMENT TOTALS', [row('Gear ATK', '+' + this.formatNum(gear('atk'))), row('Gear DEF', '+' + this.formatNum(gear('def'))), row('Gear HP (x5)', '+' + this.formatNum(gear('hp') * 5)), row('Slots filled', eq.length + ' / 6'), row('Inventory', st.inventory.length + ' / ' + st.maxInventory), row('Gear stat power', 'x' + (1 + f.powerLvl * 0.1 + rr.goldenAnvil * 0.25).toFixed(2))]),
+                    card('FORGE' , [row('Craft speed', (f.speedLvl * (1 + sk.craftSpeedBoost * 0.1 + this.petBonus('craft'))).toFixed(2) + ' / sec'), row('Multi-craft chance', Math.min(90, f.multiLvl * 5) + '%'), row('Ore refund chance', Math.min(80, sk.refundBoost * 4) + '%'), row('Rarity upgrade level', f.rarityLvl), row('Lucky Smith bonus', '+' + sk.luckBoost * 10 + '%'), row('Ore quality bonus', bonus ? ORES[bonus].name : 'None (iron only)'), row('Essence multiplier', 'x' + this.essMult().toFixed(2))]),
+                    card('ITEM RARITY CHANCE', oddsRows),
+                    card('ECONOMY', [row('Gold multiplier', 'x' + goldM.toFixed(2), 'text-amber-300'), row('XP multiplier', 'x' + xpM.toFixed(2)), row('Kill combo', 'x' + (1 + Math.min(this.combo || 0, 50) * 0.02).toFixed(2)), row('Ore yield bonus', '+' + sk.mineYieldBoost * 25 + '%'), row('Miners hired', sumMine), row('Diamonds per boss', 5 + Math.floor(d.stage / 5) + sk.diamondBoost)]),
+                    card('PROGRESS', [row('Current stage', d.stage), row('Highest stage', d.highestStage), row('Monsters slain', this.formatNum(st.stats.kills)), row('Bosses defeated', st.stats.bosses || 0), row('Items crafted', this.formatNum(st.stats.crafted)), row('Soul Shards', st.shards, 'text-rose-400'), row('Soul tree ranks', Object.values(rr).reduce((a, b) => a + b, 0)), row('Time played', tStr)]),
+                    card('PETS', this.petSummaryRows(row))
+                ];
+                document.getElementById('stats-content').innerHTML = html.join('');
+            }
+
+            // REFORGE SOUL / PRESTIGE
+            calcPendingShards() {
+                const base = Math.max(0, Math.floor(Math.pow(this.state.dungeon.highestStage, 1.4) * 2 + (this.state.gold / 100000)) - 2);
+                const r = this.state.reforgeRelics;
+                return Math.floor(base * (1 + r.soulEcho * 0.15 + (r.ascend ? 0.25 : 0)));
+            }
+
+            reforgeSoul() {
+                const n = this.calcPendingShards();
+                if (n <= 0) { this.modal('Not ready yet', 'Push deeper into the dungeon first. Reach around Stage 2 or higher (or save up more gold) to earn Soul Shards.'); return; }
+                this.modal('Reforge your soul?', `You will gain <b class="text-rose-400">${n} Soul Shards</b>.<br><b>Everything</b> resets: hero level, gear, gold, ores, pets, tech tree and forge upgrades. You keep Soul Shards, the Soul Tree and trophies.`, 'Reforge', () => this.doReforge(n));
+            }
+
+            doReforge(shardsToGain) {
+                const old = this.state, rr = old.reforgeRelics, ns = new GameState();
+                ns.shards = old.shards + shardsToGain; ns.reforgeRelics = rr; ns.achv = old.achv; ns.stats = old.stats;
+                ns.gold = rr.headStart * 1000; ns.ores.iron.amount = 50 + rr.headStart * 100;
+                ns.lastSaveTimestamp = Date.now();
+                this.state = ns; this.combo = 0; this.dm = 1; this.dh = 1; this.particles = [];
+                this.recalculateHeroStats(); this.spawnMonster();
+                document.getElementById('boss-timer-container').classList.add('hidden');
+                ['toggle-autocraft', 'toggle-autoequip', 'toggle-salvage-worse'].forEach(i => document.getElementById(i).checked = false);
+                this.renderInventory(); this.renderMines(); this.renderSkills(); this.renderPets(); this.renderSoulShop(); this.renderAchievements(); this.renderGamble();
+                this.shake = 18; this.toast('🔥 Soul reforged! +' + shardsToGain + ' Soul Shards'); audio.playLevelUp();
+                this.saveGame(); this.updateUI();
+                this.logCombat(`<span class='text-rose-400 font-bold'>SOUL REFORGED! Acquired +${shardsToGain} Soul Shards!</span>`);
+            }
+
+            treeBonus(k) {
+                const r = this.state.reforgeRelics, a = r.ascend ? 1 : 0;
+                return ({ atk: r.warlord * 0.1 + a * 0.25, crit: r.bloodlust * 1.5, craft: r.forgeFury * 0.2, luck: r.masterwork * 0.15, gold: r.soulCore * 0.1 + a * 0.5, xp: r.soulCore * 0.1 + a * 0.5 })[k] || 0;
+            }
+
+            treeOpen(n) { return n.req.every(id => this.state.reforgeRelics[id] >= TREE.find(t => t.id === id).max); }
+
+            renderSoulShop() {
+                const box = document.getElementById('soul-shop-grid');
+                if (!box) return;
+                box.className = 'overflow-x-auto pb-2';
+                const W = 150, H = 100, rr = this.state.reforgeRelics, node = id => TREE.find(n => n.id === id), pos = n => ({ x: n.c * W + 10, y: n.r * H + 10 });
+                let lines = '', cards = '';
+                TREE.forEach(n => {
+                    const p = pos(n);
+                    n.req.forEach(id => {
+                        const q = pos(node(id)), open = rr[id] >= node(id).max;
+                        lines += `<line x1="${q.x + 65}" y1="${q.y + 74}" x2="${p.x + 65}" y2="${p.y}" stroke="${open ? '#f59e0b' : '#334155'}" stroke-width="3" ${open ? '' : 'stroke-dasharray="5 4"'}/>`;
+                    });
+                    const rank = rr[n.id], max = rank >= n.max, open = this.treeOpen(n), cost = n.cost * (rank + 1), can = open && !max && this.state.shards >= cost;
+                    const cls = max ? 'border-amber-400 bg-amber-500/15' : open ? (can ? 'border-rose-400 bg-slate-900 hover:scale-105' : 'border-slate-600 bg-slate-900') : 'border-slate-800 bg-slate-950 opacity-40';
+                    cards += `<button onclick="game.buyRelic('${n.id}')" class="absolute text-left rounded-xl p-2 border-2 transition ${cls}" style="left:${p.x}px;top:${p.y}px;width:130px;height:74px">
+                        <div class="text-[11px] font-bold leading-tight ${max ? 'text-amber-300' : 'text-rose-300'}">${open ? '' : '🔒 '}${n.name} <span class="text-slate-400">${rank}/${n.max}</span></div>
+                        <div class="text-[9px] text-slate-400 leading-tight mt-0.5">${n.desc}</div>
+                        <div class="text-[10px] font-bold mt-0.5 ${max ? 'text-amber-300' : 'text-rose-300'}">${max ? 'MAXED' : cost + ' shards'}</div></button>`;
+                });
+                box.innerHTML = `<div class="relative" style="width:${5 * W + 10}px;height:${6 * H + 20}px"><svg class="absolute inset-0" width="100%" height="100%">${lines}</svg>${cards}</div>`;
+            }
+
+            buyRelic(id) {
+                const n = TREE.find(x => x.id === id), rank = this.state.reforgeRelics[id], cost = n.cost * (rank + 1);
+                if (!this.treeOpen(n)) { this.toast('🔒 Max out the previous node(s) first.'); return; }
+                if (rank >= n.max) return;
+                if (this.state.shards < cost) { this.toast(`Need ${cost} Soul Shards.`); return; }
+                this.state.shards -= cost; this.state.reforgeRelics[id]++;
+                if (['casino', 'slotsHall', 'blackjackTable', 'rouletteWheel', 'vipLounge'].includes(id)) { this.renderGamble(); this.toast('🎰 New casino game unlocked!'); }
+                this.renderSoulShop(); this.recalculateHeroStats(); this.updateUI();
+            }
+
+            // ---------- GAMBLING ----------
+            say(h, good) {
+                const e = document.getElementById('gam-msg'); if (!e) return;
+                e.innerHTML = h;
+                e.className = 'rounded-xl p-3 text-sm font-semibold border ' + (good === 1 ? 'border-emerald-500/50 bg-emerald-900/20 text-emerald-300' : good === 0 ? 'border-rose-500/40 bg-rose-900/20 text-rose-300' : 'border-slate-700 bg-slate-900 text-slate-300');
+            }
+            takeBet() {
+                const cur = document.getElementById('gam-cur').value, v = Math.floor(Number(document.getElementById('gam-bet').value));
+                if (!(v >= 1)) { this.say('Enter a bet of at least 1.', 0); return null; }
+                if (this.state[cur] < v) { this.say(`Not enough ${cur}!`, 0); return null; }
+                this.state[cur] -= v; this.updateUI(); return { v, cur };
+            }
+            res(b, m, desc) {
+                const pay = Math.floor(b.v * m * (m > 1 ? 1 + this.state.reforgeRelics.vipLounge * 0.03 : 1));
+                this.state[b.cur] += pay; this.updateUI();
+                const net = pay - b.v;
+                this.say(`${desc} ${net > 0 ? 'You won' : net < 0 ? 'You lost' : 'Push, bet returned:'} <b>${this.formatNum(Math.abs(net))} ${b.cur}</b>`, net > 0 ? 1 : net < 0 ? 0 : 2);
+                if (net > 0) audio.playLevelUp();
+            }
+            setBet(f) {
+                const cur = document.getElementById('gam-cur').value;
+                document.getElementById('gam-bet').value = Math.max(1, Math.floor(this.state[cur] * f));
+            }
+            gFlip(side) { const b = this.takeBet(); if (!b) return; const r = Math.random() < 0.5 ? 0 : 1; this.res(b, r === side ? 1.96 : 0, `It landed on ${r ? 'Tails' : 'Heads'}.`); }
+            gRoul(kind) {
+                const b = this.takeBet(); if (!b) return;
+                const n = Math.floor(Math.random() * 37), RED = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
+                const col = n === 0 ? 2 : (RED.includes(n) ? 0 : 1);
+                this.res(b, col === kind ? (kind === 2 ? 36 : 2) : 0, `The ball lands on ${n} (${['Red', 'Black', 'Green'][col]}).`);
+            }
+            diceLbl() { const t = document.getElementById('dice-t'); if (!t) return; document.getElementById('dice-t-lbl').textContent = t.value; document.getElementById('dice-mult').textContent = (97 / t.value).toFixed(2); }
+            gDice() { const T = Number(document.getElementById('dice-t').value), b = this.takeBet(); if (!b) return; const r = 1 + Math.floor(Math.random() * 100); this.res(b, r <= T ? 97 / T : 0, `You rolled ${r}.`); }
+            gSlots() {
+                if (this.spinning) return;
+                const b = this.takeBet(); if (!b) return;
+                this.spinning = true;
+                const SY = [['🍒', 30], ['🍋', 25], ['🔔', 20], ['💎', 15], ['7️⃣', 10]], PAY = { '🍒': 5, '🍋': 8, '🔔': 15, '💎': 40, '7️⃣': 100 };
+                const pick = () => { let r = Math.random() * 100; for (const [sy, w] of SY) { if ((r -= w) < 0) return sy; } return '🍒'; };
+                const reels = [...document.querySelectorAll('#slot-reels span')]; let n = 0;
+                const iv = setInterval(() => {
+                    reels.forEach(e => e.textContent = pick());
+                    if (++n >= 8) {
+                        clearInterval(iv); this.spinning = false;
+                        const f = [pick(), pick(), pick()]; reels.forEach((e, i) => e.textContent = f[i]);
+                        let m = 0, d = 'No match.';
+                        if (f[0] === f[1] && f[1] === f[2]) { m = PAY[f[0]]; d = 'THREE OF A KIND!'; }
+                        else if (f[0] === f[1] || f[1] === f[2] || f[0] === f[2]) { m = 0.6; d = 'A pair.'; }
+                        this.res(b, m, d);
+                    }
+                }, 80);
+            }
+            bjCard() { return 1 + Math.floor(Math.random() * 13); }
+            bjVal(h) { let t = 0, a = 0; h.forEach(c => { if (c === 1) { a++; t += 11; } else t += Math.min(c, 10); }); while (t > 21 && a > 0) { t -= 10; a--; } return t; }
+            bjShow(hide) {
+                const nm = c => ({ 1: 'A', 11: 'J', 12: 'Q', 13: 'K' })[c] || c, g = this.bj;
+                document.getElementById('bj-area').innerHTML = `Dealer: <b>${hide ? nm(g.d[0]) + ' ?' : g.d.map(nm).join(' ') + ' (' + this.bjVal(g.d) + ')'}</b><br>You: <b>${g.p.map(nm).join(' ')}</b> (${this.bjVal(g.p)}) · bet ${this.formatNum(g.b.v)} ${g.b.cur}`;
+            }
+            bjBtns(play) {
+                const B = (l, f) => `<button onclick="${f}" class="bg-amber-600 text-slate-950 font-bold text-sm px-3 py-2 rounded-lg mr-2">${l}</button>`;
+                document.getElementById('bj-btns').innerHTML = play ? B('Hit', 'game.bjHit()') + B('Stand', 'game.bjStand()') + (this.bj.p.length === 2 ? B('Double', 'game.bjDouble()') : '') : B('Deal', 'game.bjDeal()');
+            }
+            bjDeal() {
+                if (this.bj && this.bj.live) return;
+                const b = this.takeBet(); if (!b) return;
+                this.bj = { b, p: [this.bjCard(), this.bjCard()], d: [this.bjCard(), this.bjCard()], live: true };
+                if (this.bjVal(this.bj.p) === 21) { this.bjEnd(); return; }
+                this.bjShow(true); this.bjBtns(true);
+            }
+            bjHit() { const g = this.bj; g.p.push(this.bjCard()); if (this.bjVal(g.p) >= 21) this.bjStand(); else { this.bjShow(true); this.bjBtns(true); } }
+            bjDouble() {
+                const g = this.bj;
+                if (this.state[g.b.cur] < g.b.v) { this.say('Not enough to double down.', 0); return; }
+                this.state[g.b.cur] -= g.b.v; g.b.v *= 2; g.p.push(this.bjCard()); this.bjStand();
+            }
+            bjStand() { const g = this.bj; if (this.bjVal(g.p) <= 21) { while (this.bjVal(g.d) < 17) g.d.push(this.bjCard()); } this.bjEnd(); }
+            bjEnd() {
+                const g = this.bj; g.live = false;
+                const pv = this.bjVal(g.p), dv = this.bjVal(g.d), nat = pv === 21 && g.p.length === 2, dnat = dv === 21 && g.d.length === 2;
+                let m = 0, d;
+                if (pv > 21) d = 'Bust!';
+                else if (nat && !dnat) { m = 2.5; d = 'BLACKJACK!'; }
+                else if (dv > 21) { m = 2; d = 'Dealer busts.'; }
+                else if (pv > dv) { m = 2; d = `${pv} beats ${dv}.`; }
+                else if (pv === dv) { m = 1; d = `Tie at ${pv}.`; }
+                else d = `Dealer's ${dv} beats ${pv}.`;
+                this.bjShow(false); this.bjBtns(false); this.res(g.b, m, d);
+            }
+
+            renderGamble() {
+                const box = document.getElementById('gamble-content'); if (!box) return;
+                const rr = this.state.reforgeRelics;
+                if (!rr.casino) { box.innerHTML = ''; return; }
+                const cur0 = (document.getElementById('gam-cur') || {}).value || 'gold', bet0 = (document.getElementById('gam-bet') || {}).value || 100;
+                const card = (t, body) => `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-4"><div class="font-cinzel font-bold text-amber-400 mb-2">${t}</div>${body}</div>`;
+                const btn = (l, f, c = 'bg-amber-600 text-slate-950') => `<button onclick="${f}" class="${c} font-bold text-sm px-4 py-2 rounded-lg">${l}</button>`;
+                const games = [card('🪙 COIN FLIP', `<div class="text-xs text-slate-400 mb-2">Pick a side. A win pays x1.96.</div><div class="flex gap-2">${btn('Heads', 'game.gFlip(0)')}${btn('Tails', 'game.gFlip(1)')}</div>`)];
+                if (rr.slotsHall) games.push(card('🎰 SLOT MACHINE', `<div id="slot-reels" class="flex justify-center gap-2 text-4xl my-2"><span>🍒</span><span>🍒</span><span>🍒</span></div><div class="text-[10px] text-slate-400 mb-2">3 of a kind: 🍒x5 🍋x8 🔔x15 💎x40 7️⃣x100. Any pair pays x0.6.</div>${btn('Spin', 'game.gSlots()')}`));
+                if (rr.blackjackTable) games.push(card('🃏 BLACKJACK', `<div id="bj-area" class="text-sm mb-2 text-slate-300">Place a bet and deal. Blackjack pays 3:2, dealer stands on 17.</div><div id="bj-btns">${btn('Deal', 'game.bjDeal()')}</div>`));
+                if (rr.rouletteWheel) games.push(card('🎡 ROULETTE', `<div class="text-xs text-slate-400 mb-2">Red or Black pays x2. Green (0) pays x36.</div><div class="flex gap-2">${btn('Red', 'game.gRoul(0)', 'bg-red-600 text-white')}${btn('Black', 'game.gRoul(1)', 'bg-slate-700 text-white')}${btn('Green', 'game.gRoul(2)', 'bg-emerald-600 text-white')}</div>`));
+                if (rr.vipLounge) games.push(card('🎲 LUCKY DICE', `<div class="text-xs text-slate-400 mb-2">Roll under <b id="dice-t-lbl">50</b> to win (pays x<span id="dice-mult">1.94</span>)</div><input id="dice-t" type="range" min="5" max="95" value="50" class="w-full accent-amber-500 mb-2" oninput="game.diceLbl()">${btn('Roll', 'game.gDice()')}`));
+                const q = (l, f) => `<button onclick="game.setBet(${f})" class="bg-slate-800 hover:bg-slate-700 text-xs font-bold px-2 py-1 rounded">${l}</button>`;
+                box.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center gap-2 text-sm">
+                    <span class="font-cinzel font-bold text-amber-400 mr-2">CASINO</span>
+                    <select id="gam-cur" class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1"><option value="gold">Gold</option><option value="essence">Essence</option><option value="diamonds">Diamonds</option></select>
+                    <input id="gam-bet" type="number" min="1" value="${bet0}" class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 w-32">
+                    ${q('10%', 0.1)}${q('25%', 0.25)}${q('50%', 0.5)}${q('MAX', 1)}</div>
+                    <div id="gam-msg" class="rounded-xl p-3 text-sm font-semibold border border-slate-700 bg-slate-900 text-slate-300">Place your bets! The house has a small edge, so gamble wisely.</div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">${games.join('')}</div>`;
+                document.getElementById('gam-cur').value = cur0;
+                this.diceLbl();
+            }
+
+            // COMBAT & DUNGEON LOOP
+            spawnMonster() {
+                const stage = this.state.dungeon.stage;
+                const isBoss = this.state.dungeon.inBossFight;
+
+                const baseHp = 30 * Math.pow(1.25, stage - 1);
+                const hp = isBoss ? baseHp * 5 : baseHp;
+
+                this.state.dungeon.monsterMaxHp = Math.floor(hp);
+                this.state.dungeon.monsterHp = this.state.dungeon.monsterMaxHp;
+                this.state.dungeon.monsterAtk = Math.floor(5 * Math.pow(1.2, stage - 1));
+                const pool = ZONE_ENEMIES[Math.floor((stage - 1) / 10) % ZONE_ENEMIES.length];
+                if (isBoss) { const e = pool[2]; this.curEnemy = { name: e[0] + ' Lord', color: '#ef4444' }; }
+                else if (Math.random() < 0.04 + this.state.reforgeRelics.treasureHunter * 0.02) { this.curEnemy = { name: 'Treasure Goblin', color: '#facc15', treasure: true }; }
+                else { const e = pool[Math.floor(Math.random() * 3)]; this.curEnemy = { name: e[0], color: e[1] }; }
+
+                if (isBoss) {
+                    this.state.dungeon.bossTimer = 30;
+                    document.getElementById('boss-timer-container').classList.remove('hidden');
+                } else {
+                    document.getElementById('boss-timer-container').classList.add('hidden');
+                }
+            }
+
+            challengeBoss() {
+                this.state.dungeon.inBossFight = true;
+                this.state.dungeon.bossFailed = false;
+                this.spawnMonster();
+                this.logCombat("<span class='text-rose-400 font-bold'>BOSS BATTLE STARTED!</span>");
+            }
+
+            gameLoop(ts) {
+                const dt = Math.min(0.1, (ts - (this.lastTs || ts)) / 1000) * (this.speedMul || 1); this.lastTs = ts;
+                const st = this.state, d = st.dungeon, f = st.forge, hd = this.heroDerived;
+                const speed = f.speedLvl * (1 + st.skills.craftSpeedBoost * 0.1 + this.petBonus('craft'));
+                if (f.autoCraft && ts - f.lastCraftTime > 1000 / speed) { f.lastCraftTime = ts; this.craftItem(); }
+
+                this.strikeCd = Math.max(0, (this.strikeCd || 0) - dt);
+                const sb = document.getElementById('btn-strike');
+                sb.disabled = this.strikeCd > 0; sb.classList.toggle('opacity-40', this.strikeCd > 0);
+                sb.innerHTML = this.strikeCd > 0 ? `<i class="fa-solid fa-bolt"></i> ${this.strikeCd.toFixed(0)}s` : '<i class="fa-solid fa-bolt"></i> Power Strike';
+                this.heroAttackTimer += dt;
+                if (this.heroAttackTimer >= 0.8 / (1 + (st.hero.stats.agi - 10) * 0.02)) {
+                    this.heroAttackTimer = 0; this.heroLunge = 1; this.monsterFlash = 1;
+                    this.executeCombatRound();
+                }
+                this.monsterAttackTimer = (this.monsterAttackTimer || 0) + dt;
+                if (this.monsterAttackTimer >= 1.2) {
+                    this.monsterAttackTimer = 0; this.monsterLunge = 1;
+                    const dmg = Math.max(1, Math.floor(d.monsterAtk * 100 / (100 + hd.def)));
+                    st.hero.hp -= dmg;
+                    this.addDamageNumber(dmg, false, true);
+                    if (st.hero.hp <= 0) this.onHeroDefeated();
+                }
+                st.hero.hp = Math.min(hd.hp, st.hero.hp + hd.hp * (0.02 + st.skills.regenBoost * 0.005 + this.petBonus('regen')) * dt);
+
+                if (d.inBossFight) {
+                    d.bossTimer -= dt;
+                    document.getElementById('boss-timer-text').textContent = `${Math.max(0, d.bossTimer).toFixed(1)}s`;
+                    document.getElementById('boss-timer-bar').style.width = `${Math.max(0, d.bossTimer / 30) * 100}%`;
+                    if (d.bossTimer <= 0) {
+                        d.inBossFight = false; d.bossFailed = true; d.kills = 0;
+                        this.logCombat("<span class='text-rose-500'>Boss timer expired! Gear up and try again.</span>");
+                        this.spawnMonster(); this.updateUI();
+                    }
+                }
+                this.renderCombatCanvas();
+                requestAnimationFrame((t) => this.gameLoop(t));
+            }
+
+            executeCombatRound() {
+                audio.playHit();
+                let dmg = this.heroDerived.atk;
+                const isCrit = Math.random() * 100 < this.heroDerived.crit;
+                if (isCrit) dmg = Math.floor(dmg * (1.8 + this.state.skills.critDmg * 0.1));
+                if (this.state.dungeon.inBossFight) dmg = Math.floor(dmg * (1 + this.state.reforgeRelics.bossSlayer * 0.4));
+                this.state.dungeon.monsterHp -= dmg;
+                this.addDamageNumber(dmg, isCrit, false);
+                if (isCrit) this.shake = 7;
+                this.state.stats.bestHit = Math.max(this.state.stats.bestHit || 0, dmg);
+                if (this.state.dungeon.monsterHp <= 0) this.onMonsterDefeated();
+            }
+
+            onHeroDefeated() {
+                const d = this.state.dungeon;
+                this.state.hero.hp = this.heroDerived.hp; this.combo = 0; this.state.stats.deaths = (this.state.stats.deaths || 0) + 1;
+                d.kills = 0;
+                if (d.inBossFight) { d.bossFailed = true; d.inBossFight = false; this.logCombat("<span class='text-rose-400 font-bold'>Defeated by the boss! Upgrade gear and retry.</span>"); }
+                else { d.stage = Math.max(1, d.stage - 1); this.logCombat("<span class='text-rose-400 font-bold'>Hero fell! Retreating one stage.</span>"); }
+                this.spawnMonster(); this.updateUI();
+            }
+
+            onMonsterDefeated() {
+                const st = this.state, d = st.dungeon, stage = d.stage;
+                const intB = (st.hero.stats.int - 10) * 0.02;
+                const goldMult = 1 + st.skills.goldBoost * 0.15 + st.reforgeRelics.soulHarvest * 0.5 + this.petBonus('gold');
+                const xpMult = 1 + st.skills.xpBoost * 0.15 + st.reforgeRelics.soulHarvest * 0.5 + intB + this.petBonus('xp');
+                this.combo = (this.combo || 0) + 1;
+                const tr = this.curEnemy && this.curEnemy.treasure ? 10 : 1;
+                const gGain = Math.floor(15 * Math.pow(1.2, stage - 1) * goldMult * (1 + Math.min(this.combo, 50) * 0.02) * tr);
+                st.gold += gGain; st.stats.kills++;
+                if (tr > 1) this.toast('💰 Treasure Goblin! +' + this.formatNum(gGain) + ' gold');
+                this.burst(this.curEnemy ? this.curEnemy.color : '#a855f7');
+                this.damageNumbers.push({ text: '+' + this.formatNum(gGain), x: this.canvas.width - 95, y: this.canvas.height - 100, opacity: 1, isHero: false, isCrit: false, gold: true });
+                this.addXp(Math.floor(10 * Math.pow(1.15, stage - 1) * xpMult));
+                d.kills++;
+                if (d.inBossFight) {
+                    st.diamonds += 5 + Math.floor(stage / 5) + st.skills.diamondBoost + st.reforgeRelics.diamondVein * 2;
+                    d.inBossFight = false; d.bossFailed = false; d.kills = 0; d.stage++; this.shake = 16; st.stats.bosses = (st.stats.bosses || 0) + 1;
+                    if (Math.random() < 0.25) this.hatch('wild', true); this.toast('☠ Boss defeated! Stage ' + d.stage + ' unlocked');
+                    this.logCombat(`<span class='text-amber-400 font-bold'>BOSS DEFEATED! Stage ${d.stage} unlocked!</span>`);
+                } else if (d.kills >= 8) {
+                    if (stage % 5 === 0) {
+                        if (!d.bossFailed) { d.inBossFight = true; this.logCombat("<span class='text-rose-400 font-bold'>BOSS APPEARS!</span>"); }
+                    } else { d.stage++; d.kills = 0; }
+                }
+                if (d.stage > d.highestStage) d.highestStage = d.stage;
+                this.spawnMonster();
+                this.updateUI();
+            }
+
+            addXp(amount) {
+                this.state.hero.xp += amount;
+                if (this.state.hero.xp >= this.state.hero.xpReq) {
+                    this.state.hero.xp -= this.state.hero.xpReq;
+                    this.state.hero.level++;
+                    this.state.hero.statPoints += 3;
+                    this.state.hero.xpReq = Math.floor(this.state.hero.xpReq * 1.4);
+                    audio.playLevelUp();
+                    this.toast('⬆ Hero reached level ' + this.state.hero.level + '!');
+                    this.logCombat(`<span class='text-emerald-400 font-bold'>LEVEL UP! Hero reached level ${this.state.hero.level}! (+3 Stat Points)</span>`);
+                }
+            }
+
+            addDamageNumber(val, isCrit, isHero) {
+                this.damageNumbers.push({
+                    text: val,
+                    isCrit,
+                    isHero,
+                    x: isHero ? 80 : this.canvas.width - 80,
+                    y: this.canvas.height / 2 - 20,
+                    opacity: 1,
+                    scale: isCrit ? 1.5 : 1
+                });
+            }
+
+            renderCombatCanvas() {
+                if (!this.ctx) return;
+                const c = this.ctx, w = this.canvas.width, h = this.canvas.height, t = performance.now() / 1000;
+                const st = this.state, d = st.dungeon, boss = d.inBossFight, gy = h - 42;
+                const bg = c.createLinearGradient(0, 0, 0, h);
+                bg.addColorStop(0, boss ? '#2a0a14' : '#0b1228'); bg.addColorStop(1, boss ? '#3b0f1c' : '#1e1b3a');
+                c.fillStyle = bg; c.fillRect(0, 0, w, h);
+                this.shake = (this.shake || 0) * 0.88; c.save();
+                if (this.shake > 0.3) c.translate((Math.random() - 0.5) * this.shake, (Math.random() - 0.5) * this.shake);
+                c.fillStyle = 'rgba(255,255,255,0.45)';
+                for (let i = 0; i < 28; i++) c.fillRect((i * 97) % w, (i * 53) % Math.max(1, h - 90), 1.5, 1.5);
+                c.fillStyle = '#111827'; c.fillRect(0, gy + 18, w, h);
+                c.fillStyle = '#334155'; c.fillRect(0, gy + 18, w, 2);
+
+                this.heroLunge = (this.heroLunge || 0) * 0.85; this.monsterLunge = (this.monsterLunge || 0) * 0.85; this.monsterFlash = (this.monsterFlash || 0) * 0.8;
+                const shadow = (x, r) => { c.fillStyle = 'rgba(0,0,0,0.35)'; c.beginPath(); c.ellipse(x, gy + 20, r, r * 0.3, 0, 0, 7); c.fill(); };
+
+                // Hero
+                const hx = 70 + this.heroLunge * 45, hy = gy - 4 + Math.sin(t * 3) * 2;
+                shadow(hx, 20);
+                c.fillStyle = '#38bdf8'; c.beginPath(); c.arc(hx, hy, 20, 0, 7); c.fill();
+                const eq = st.hero.equipment, col = (it, def) => it ? RARITIES.find(r => r.id === it.rarity).color : def;
+                if (eq.head) { c.fillStyle = col(eq.head); c.beginPath(); c.arc(hx, hy - 4, 20, Math.PI, 0); c.fill(); }
+                if (eq.shield) { c.fillStyle = col(eq.shield); c.fillRect(hx - 30, hy - 10, 8, 22); }
+                c.fillStyle = '#fff'; c.beginPath(); c.arc(hx + 7, hy - 2, 3, 0, 7); c.fill();
+                c.save(); c.translate(hx + 14, hy + 2); c.rotate(-0.5 + this.heroLunge * 1.4);
+                c.strokeStyle = col(eq.weapon, '#94a3b8'); c.lineWidth = 5; c.lineCap = 'round';
+                c.beginPath(); c.moveTo(0, 0); c.lineTo(30, 0); c.stroke(); c.restore();
+
+                (this.state.pets.active || []).forEach((id, i) => {
+                    const sp = PET_SPECIES.find(x => x.id === id); if (!sp) return;
+                    const px = hx - 28 + i * 28, py = hy - 42 - (i % 2) * 8 + Math.sin(t * 3 + i * 1.7) * 4;
+                    c.fillStyle = sp.color; c.beginPath(); c.arc(px, py, 8, 0, 7); c.fill();
+                    c.fillStyle = '#fff'; c.beginPath(); c.arc(px + 3, py - 2, 2.2, 0, 7); c.fill();
+                });
+                // Monster
+                const mr = boss ? 34 : 22, mx = w - 70 - this.monsterLunge * 30, my = gy - 2 + Math.sin(t * 2.5) * 3;
+                shadow(mx, mr);
+                c.fillStyle = this.monsterFlash > 0.3 ? '#ffffff' : (boss ? '#ef4444' : (this.curEnemy ? this.curEnemy.color : '#a855f7'));
+                c.beginPath(); c.arc(mx, my, mr, 0, 7); c.fill();
+                c.fillStyle = '#fff'; c.beginPath(); c.arc(mx - mr * 0.35, my - mr * 0.2, 4, 0, 7); c.arc(mx + mr * 0.1, my - mr * 0.2, 4, 0, 7); c.fill();
+                c.fillStyle = '#111'; c.beginPath(); c.arc(mx - mr * 0.4, my - mr * 0.2, 2, 0, 7); c.arc(mx + mr * 0.05, my - mr * 0.2, 2, 0, 7); c.fill();
+
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const q = this.particles[i];
+                    c.globalAlpha = Math.max(0, q.life); c.fillStyle = q.color;
+                    c.beginPath(); c.arc(q.x, q.y, 3, 0, 7); c.fill();
+                    q.x += q.vx; q.y += q.vy; q.vy += 0.18; q.life -= 0.025;
+                    if (q.life <= 0) this.particles.splice(i, 1);
+                }
+                c.globalAlpha = 1;
+                // Bars
+                const bar = (x, y, bw, pct, color) => { c.fillStyle = '#1e293b'; c.fillRect(x, y, bw, 7); c.fillStyle = color; c.fillRect(x, y, bw * Math.max(0, Math.min(1, pct)), 7); };
+                bar(w - 115, 18, 90, (this.dm = (this.dm ?? 1) + (d.monsterHp / d.monsterMaxHp - (this.dm ?? 1)) * 0.2), boss ? '#ef4444' : '#22c55e');
+                bar(25, 18, 90, (this.dh = (this.dh ?? 1) + (st.hero.hp / this.heroDerived.hp - (this.dh ?? 1)) * 0.2), '#38bdf8');
+                c.font = 'bold 10px Inter, sans-serif'; c.fillStyle = '#94a3b8';
+                c.fillText('HERO', 25, 14); c.textAlign = 'right'; c.fillText(this.curEnemy ? this.curEnemy.name : 'Enemy', w - 25, 14); c.textAlign = 'left';
+
+                c.restore();
+                // Floating numbers
+                for (let i = this.damageNumbers.length - 1; i >= 0; i--) {
+                    const n = this.damageNumbers[i];
+                    c.save(); c.globalAlpha = n.opacity;
+                    c.fillStyle = n.gold ? '#fbbf24' : n.isHero ? '#f87171' : (n.isCrit ? '#f59e0b' : '#ffffff');
+                    c.font = `${n.isCrit ? 'bold 18px' : '14px'} Inter, sans-serif`;
+                    c.fillText(n.isHero ? '-' + n.text : n.text, n.x, n.y); c.restore();
+                    n.y -= 0.8; n.opacity -= 0.02;
+                    if (n.opacity <= 0) this.damageNumbers.splice(i, 1);
+                }
+            }
+
+            secondTick() {
+                this.checkAchievements(); this.state.stats.time++; this.updateFreeEgg();
+                // Ore passive mining ticks
+                Object.keys(this.state.ores).forEach(k => {
+                    const ore = this.state.ores[k];
+                    if (ore.minerLvl > 0) {
+                        const yieldBonus = 1 + (this.state.skills.mineYieldBoost * 0.25) + this.petBonus('ore');
+                        ore.amount += Math.floor(ore.minerLvl * yieldBonus);
+                    }
+                });
+
+                this.updateUI();
+            }
+
+            logCombat(msg) {
+                const log = document.getElementById('combat-log');
+                if (!log) return;
+                const entry = document.createElement('div');
+                entry.innerHTML = msg;
+                log.appendChild(entry);
+                while (log.children.length > 60) log.removeChild(log.firstChild);
+                log.scrollTop = log.scrollHeight;
+            }
+
+            updateUI() {
+                // Top currencies
+                document.getElementById('res-gold').textContent = this.formatNum(this.state.gold);
+                document.getElementById('res-essence').textContent = this.formatNum(this.state.essence);
+                document.getElementById('res-diamonds').textContent = this.formatNum(this.state.diamonds);
+                document.getElementById('res-shards').textContent = this.formatNum(this.state.shards);
+
+                // Hero panel
+                document.getElementById('hero-lvl').textContent = this.state.hero.level;
+                document.getElementById('hero-power').textContent = this.formatNum(this.heroDerived ? this.heroDerived.atk + this.heroDerived.def : 0);
+                document.getElementById('hero-stat-pts').textContent = this.state.hero.statPoints;
+                document.getElementById('stat-str').textContent = this.state.hero.stats.str;
+                document.getElementById('stat-agi').textContent = this.state.hero.stats.agi;
+                document.getElementById('stat-vit').textContent = this.state.hero.stats.vit;
+                document.getElementById('stat-int').textContent = this.state.hero.stats.int;
+
+                if (this.heroDerived) {
+                    document.getElementById('stat-atk').textContent = this.formatNum(this.heroDerived.atk);
+                    document.getElementById('stat-def').textContent = this.formatNum(this.heroDerived.def);
+                    document.getElementById('stat-hp').textContent = this.formatNum(this.heroDerived.hp);
+                    document.getElementById('stat-crit').textContent = `${this.heroDerived.crit.toFixed(1)}%`;
+                }
+
+                // Hero XP
+                const xpPct = (this.state.hero.xp / this.state.hero.xpReq) * 100;
+                document.getElementById('hero-xp-bar').style.width = `${xpPct}%`;
+
+                // Forge panel labels & costs
+                document.getElementById('lbl-craft-speed').textContent = `${(1 / (this.state.forge.speedLvl * (1 + this.state.skills.craftSpeedBoost * 0.1 + this.petBonus('craft')))).toFixed(2)}s`;
+                document.getElementById('lvl-forge-speed').textContent = this.state.forge.speedLvl;
+                document.getElementById('cost-forge-speed').textContent = `${this.formatNum(Math.floor(10 * Math.pow(1.5, this.state.forge.speedLvl - 1)))} Gold`;
+
+                document.getElementById('lvl-forge-multi').textContent = this.state.forge.multiLvl;
+                document.getElementById('cost-forge-multi').textContent = `${this.formatNum(Math.floor(50 * Math.pow(1.8, this.state.forge.multiLvl)))} Gold`;
+
+                document.getElementById('lvl-forge-rarity').textContent = this.state.forge.rarityLvl;
+                document.getElementById('cost-forge-rarity').textContent = `${this.formatNum(Math.floor(100 * Math.pow(1.6, this.state.forge.rarityLvl - 1)))} Gold`;
+
+                document.getElementById('lvl-forge-power').textContent = this.state.forge.powerLvl;
+                document.getElementById('cost-forge-power').textContent = `${this.formatNum(Math.floor(200 * Math.pow(1.7, this.state.forge.powerLvl - 1)))} Gold`;
+
+                // Dungeon panel
+                {
+                    const d = this.state.dungeon, zones = ['Slime Cave', 'Goblin Warrens', 'Haunted Crypt', 'Molten Depths', 'Frozen Citadel', 'Shadow Keep', 'Dragon Spire', 'Celestial Gate'];
+                    const zi = Math.floor((d.stage - 1) / 10);
+                    document.getElementById('dungeon-zone-title').textContent = `ZONE ${zi + 1}: ${zones[zi % zones.length].toUpperCase()}`;
+                    const isBossStage = d.stage % 5 === 0;
+                    document.getElementById('dungeon-stage-title').textContent = `Stage ${d.stage}${isBossStage ? ' ☠ Boss' : ''} · ${d.inBossFight ? 'BOSS FIGHT' : `Kills ${Math.min(d.kills, 8)}/8 · x${(1 + Math.min(this.combo || 0, 50) * 0.02).toFixed(2)} combo`}`;
+                    document.getElementById('btn-boss').classList.toggle('hidden', !(isBossStage && !d.inBossFight));
+                    document.getElementById('boss-timer-container').classList.toggle('hidden', !d.inBossFight);
+                }
+                document.getElementById('pending-shards').textContent = `${this.calcPendingShards()} Soul Shards`;
+
+                this.refreshSkills();
+                document.getElementById('tab-btn-gamble').classList.toggle('hidden', !this.state.reforgeRelics.casino);
+                const sp = document.getElementById('tab-stats');
+                if (sp && !sp.classList.contains('hidden')) this.renderStats();
+                // Mine counts update
+                ORES.forEach(ore => {
+                    const el = document.getElementById(`ore-amt-${ore.id}`);
+                    if (el) el.textContent = this.formatNum(this.state.ores[ore.id].amount);
+                });
+            }
+        }
+
+        // Initialize Engine on Load
+        let game;
+        window.onload = () => {
+            game = new GameEngine();
+            game.init();
+        };
+    </script>
+</body>
+</html>
